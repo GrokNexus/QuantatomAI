@@ -1,0 +1,29 @@
+# QuantatomAI Code Owners
+# This file defines who owns which parts of the codebase.
+# GitHub will automatically request reviews from these teams when files change.
+
+# --- Global Architects ---
+# Fallback for root files and unowned areas
+*                       @quantatom/architects
+
+# --- Domain Services ---
+/services/grid-service/     @quantatom/grid-team
+/services/mdf-store/        @quantatom/grid-team
+/services/snapshot-service/ @quantatom/grid-team
+
+# --- Compute Engine (Rust) ---
+/services/atom-engine/      @quantatom/compute-team
+/compute/                   @quantatom/compute-team
+
+# --- Frontend & Experience ---
+/ui/                        @quantatom/frontend-team
+/frontend/                  @quantatom/frontend-team
+
+# --- Infrastructure & DevOps ---
+/infra/                     @quantatom/platform-team
+/.github/                   @quantatom/platform-team
+/Makefile                   @quantatom/platform-team
+/Dockerfile                 @quantatom/platform-team
+
+# --- Core Data Libraries ---
+/data/                      @quantatom/data-team

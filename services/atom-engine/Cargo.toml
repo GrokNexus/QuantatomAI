@@ -1,0 +1,36 @@
+[package]
+name = "atom-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core Data Format
+parquet = { version = "50.0.0" }
+arrow = { version = "50.0.0", features = ["ipc"] }
+arrow-flight = { version = "50.0.0", features = ["flight-sql-experimental"] } # Flight SQL is useful for standard queries
+
+# RPC / Network
+tonic = "0.10" # gRPC Framework (Matched to arrow-flight 50.0)
+prost = "0.11" # Protobuf
+futures = "0.3" 
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1"
+chrono = "=0.4.31" # Pin legacy version to avoid arrow-arith conflict
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+logos = "0.14" # High performance lexer
+
+# Parallelism
+rayon = "1.8"
+parking_lot = "0.12" 
+petgraph = "0.6" # Structure for Dependency Graph
+
+# Error Handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+[lib]
+name = "atom_engine"
+path = "src/lib.rs"

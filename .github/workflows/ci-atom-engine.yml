@@ -1,0 +1,43 @@
+name: "Atom Engine CI"
+
+on:
+  pull_request:
+    paths:
+      - 'services/atom-engine/**'
+      - 'compute/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  push:
+    branches:
+      - main
+
+jobs:
+  test-rust:
+    name: "Test & Lint (Rust)"
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (Lint)
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Run Unit Tests
+        run: cargo test --all-features

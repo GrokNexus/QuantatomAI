@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - aodl
+  - hot-store
+  - warm-store
+  - modeling-service
+  - planning-service
+  - grid-service
+  - web-ui

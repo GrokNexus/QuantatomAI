@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: quantatomai-cluster
+spec:
+  compositeTypeRef:
+    apiVersion: platform.quantatom.ai/v1alpha1
+    kind: XCluster
+  resources:
+    - name: eksCluster
+      base:
+        apiVersion: eks.aws.crossplane.io/v1beta1
+        kind: Cluster
+        spec:
+          forProvider:
+            region: us-east-1
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: quantatomai-eks

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planning-service
+  namespace: quantatom-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planning-service
+  template:
+    metadata:
+      labels:
+        app: planning-service
+    spec:
+      containers:
+      - name: planning
+        image: alpine:latest
+        command: ["/bin/sh", "-c", "while true; do echo planning-service active; sleep 30; done"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planning-service
+  namespace: quantatom-system
+spec:
+  selector:
+    app: planning-service
+  ports:
+  - protocol: TCP
+    port: 8081
+    targetPort: 8081

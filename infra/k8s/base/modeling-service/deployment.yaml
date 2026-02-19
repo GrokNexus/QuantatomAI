@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modeling-service
+  namespace: quantatom-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modeling-service
+  template:
+    metadata:
+      labels:
+        app: modeling-service
+    spec:
+      containers:
+      - name: modeling
+        image: alpine:latest
+        command: ["/bin/sh", "-c", "while true; do echo modeling-service active; sleep 30; done"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modeling-service
+  namespace: quantatom-system
+spec:
+  selector:
+    app: modeling-service
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080

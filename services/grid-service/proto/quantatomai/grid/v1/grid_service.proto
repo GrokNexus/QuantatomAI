@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package quantatomai.grid.v1;
+
+option go_package = "quantatomai/grid-service/pkg/grid/v1;gridv1";
+
+import "quantatomai/mdf/v1/molecule.proto";
+
+// The Orchestrator Service.
+// Translates high-level intention ("Show Revenue by Region") into calc jobs.
+service GridQueryService {
+  // Streams grid results back to the UI.
+  rpc QueryGrid(QueryGridRequest) returns (stream GridChunk);
+}
+
+message QueryGridRequest {
+    string view_id = 1;
+    repeated string dimensions = 2; // e.g. ["Region", "Time"]
+    string filter_expression = 3;   // e.g. "Region = 'North'"
+}
+
+message GridChunk {
+    // A batch of cells to render.
+    // In V1, we just wrap MDF Molecules.
+    // In V2, we use a Columnar Arrow RecordBatch bytes for WebGPU.
+    oneof data {
+        Molecules cells_v1 = 1;
+        bytes arrow_record_batch = 2; // Ultra Diamond: Zero-Copy
+    }
+}
+
+message Molecules {
+    repeated quantatomai.mdf.v1.Molecule list = 1;
+}

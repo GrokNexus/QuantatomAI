@@ -1,0 +1,43 @@
+package planner
+
+import "sync"
+
+// InMemoryProjectionCache provides a thread-safe, in-memory implementation of the AxisCache interface.
+type InMemoryProjectionCache struct {
+    mu    sync.RWMutex
+    store map[AxisKey]cachedAxes
+}
+
+type cachedAxes struct {
+    Rows   [][]MemberInfo
+    RowIDs [][]int64
+    Cols   [][]MemberInfo
+    ColIDs [][]int64
+}
+
+func NewInMemoryProjectionCache() *InMemoryProjectionCache {
+    return &InMemoryProjectionCache{
+        store: make(map[AxisKey]cachedAxes),
+    }
+}
+
+func (c *InMemoryProjectionCache) GetAxes(key AxisKey) ([][]MemberInfo, [][]int64, [][]MemberInfo, [][]int64, bool) {
+    c.mu.RLock()
+    defer c.mu.RUnlock()
+    v, ok := c.store[key]
+    if !ok {
+        return nil, nil, nil, nil, false
+    }
+    return v.Rows, v.RowIDs, v.Cols, v.ColIDs, true
+}
+
+func (c *InMemoryProjectionCache) SetAxes(key AxisKey, rows [][]MemberInfo, rowIDs [][]int64, cols [][]MemberInfo, colIDs [][]int64) {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    c.store[key] = cachedAxes{
+        Rows:   rows,
+        RowIDs: rowIDs,
+        Cols:   cols,
+        ColIDs: colIDs,
+    }
+}

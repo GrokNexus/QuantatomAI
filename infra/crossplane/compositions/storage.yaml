@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: quantatomai-storage
+spec:
+  compositeTypeRef:
+    apiVersion: platform.quantatom.ai/v1alpha1
+    kind: XStorage
+  resources:
+    - name: s3Bucket
+      base:
+        apiVersion: s3.aws.crossplane.io/v1beta1
+        kind: Bucket
+        spec:
+          forProvider:
+            region: us-east-1
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: quantatomai-storage-secret

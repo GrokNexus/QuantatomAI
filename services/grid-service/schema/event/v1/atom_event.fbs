@@ -1,0 +1,53 @@
+namespace quantatomai.event.v1;
+
+// -----------------------------------------------------------------------------
+// AtomEvent: The Nervous System Protocol
+// -----------------------------------------------------------------------------
+// This schema defines the events flowing through Redpanda.
+// It uses FlatBuffers for zero-copy access by the Rust Engine and Go Service.
+// -----------------------------------------------------------------------------
+
+enum EventType : byte {
+  UNKNOWN = 0,
+  MOLECULE_WRITE = 1,   // A user wrote a number
+  CALC_REQUEST = 2,     // A calculation job was triggered
+  SCHEMA_CHANGE = 3,    // A dimension was added/moved
+  HEARTBEAT = 4         // System liveness
+}
+
+// A lightweight representation of a Molecule for the Event Bus.
+// (Distinct from the Protobuf version used for Storage)
+table FlatMolecule {
+  coordinate_hash: [ubyte]; // 16 bytes (128-bit)
+  
+  // Polymorphic Payload (Matches Molecule.proto)
+  numeric_value: double;
+  text_commentary: string; // Added for comments
+  
+  // Ultra Diamond: Rich Types
+  date_value: long;        // Unix Nano
+  boolean_value: bool;
+  error_value: string;
+  
+  timestamp: long;
+  security_mask: ulong;
+}
+
+table AtomEvent {
+  event_id: string;       // UUID
+  trace_id: string;       // OpenTelemetry Trace ID
+  timestamp: long;        // Unix Nano
+  
+  type: EventType;
+  tenant_id: string;
+  user_id: string;
+  
+  // The Payload
+  // Vector of molecules for batch writes (e.g., pasting 10k cells)
+  molecules: [FlatMolecule]; 
+  
+  // Metadata for Schema Changes (JSON string for flexibility)
+  schema_payload: string;
+}
+
+root_type AtomEvent;

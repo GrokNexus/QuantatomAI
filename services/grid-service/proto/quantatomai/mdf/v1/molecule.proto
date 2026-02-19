@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package quantatomai.mdf.v1;
+
+option go_package = "quantatomai/grid-service/pkg/mdf/v1;mdfv1";
+
+// The Atomic Unit of Data in QuantatomAI.
+// A Molecule is a self-contained, binary-encoded unit that carries its own dimensionality, data, and context.
+message Molecule {
+  // 1. The Coordinates (The "Where")
+  // Specialized Bit-Packed Keys for fixed dims, Map for custom dims
+  // 128-bit MurmurHash3 of core dimensions
+  bytes coordinate_hash = 1; 
+  
+  // Custom or sparse dimensions (e.g., {"Project": "Project X", "Scenario": "Budget_V2"})
+  map<string, string> custom_dimensions = 2; 
+
+  // 2. The Payload (The "What")
+  // Polymorphic Value: Supports all Excel Data Types
+  oneof value {
+    double numeric_value = 3;       // Standard Numbers
+    string text_commentary = 4;     // Comments / Text
+    bytes embedding_vector = 5;     // AI Embeddings (384-dim)
+    
+    // Ultra Diamond Upgrade: Rich Types
+    int64 date_value = 10;          // Unix Timestamp (Milliseconds)
+    bool boolean_value = 11;        // True/False
+    string error_value = 12;        // #DIV/0!, #REF!, etc.
+  }
+
+  // 3. The Context (The "Why")
+  // Lineage, Audit, and Source of Truth
+  int64 timestamp = 6; // Unix Nanoseconds
+  string source_system = 7; // e.g., "SAP_ERP", "User_Edit"
+  
+  // Security Mask (Bitmask for Holographic ACLs)
+  uint64 security_mask = 8;
+  
+  // Lamport Clock Vector (Serialized) for Causal Consistency
+  bytes causality_clock = 9; 
+}

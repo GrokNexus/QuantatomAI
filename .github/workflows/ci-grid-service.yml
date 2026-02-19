@@ -1,0 +1,42 @@
+name: "Grid Service CI"
+
+on:
+  pull_request:
+    paths:
+      - 'services/grid-service/**'
+      - 'go.mod'
+      - 'go.sum'
+  push:
+    branches:
+      - main
+
+jobs:
+  test-go:
+    name: "Test & Lint (Go)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/grid-service
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: services/grid-service/go.sum
+
+      - name: Install Dependencies
+        run: go mod download
+
+      - name: Run Linter (golangci-lint)
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: services/grid-service
+          args: --timeout=5m
+
+      - name: Run Unit Tests
+        run: go test -race -v ./...

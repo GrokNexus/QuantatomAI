@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aodl
+  namespace: quantatom-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aodl
+  template:
+    metadata:
+      labels:
+        app: aodl
+    spec:
+      containers:
+      - name: aodl
+        image: alpine:latest
+        command: ["/bin/sh", "-c", "while true; do echo $(date) - AODL Heartbeat >> /var/log/aodl.log; sleep 10; done"]
+        volumeMounts:
+        - name: log-storage
+          mountPath: /var/log
+      volumes:
+      - name: log-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aodl
+  namespace: quantatom-system
+spec:
+  selector:
+    app: aodl
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

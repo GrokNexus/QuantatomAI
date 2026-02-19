@@ -1,0 +1,57 @@
+namespace fbgrid;
+
+// -----------------------------------------------------------------------------
+// Grid Wire Envelope (v1)
+// -----------------------------------------------------------------------------
+//
+// This envelope wraps the actual Grid payload and provides:
+//
+//   - wire_version: schema version for backward compatibility
+//   - content_length: size of the payload (for io_uring / sendfile)
+//   - content_checksum: optional integrity check
+//   - compression: compression algorithm used (none, zstd, lz4)
+//   - payload: raw FlatBuffer-encoded Grid
+//
+// This is REQUIRED for:
+//   - unsafe casting
+//   - off-heap arenas
+//   - io_uring passthrough
+//   - schema evolution
+// -----------------------------------------------------------------------------
+
+enum Compression : byte {
+  NONE = 0,
+  ZSTD = 1,
+  LZ4  = 2
+}
+
+table GridWireEnvelope {
+  wire_version: ushort;        // e.g., 1, 2, 3...
+  compression: Compression;    // NONE, ZSTD, LZ4
+  content_length: uint;        // length of payload[]
+  content_checksum: uint;      // optional CRC32 or xxHash32
+  payload: [ubyte];            // FlatBuffer-encoded Grid
+}
+
+root_type GridWireEnvelope;
+
+
+// -----------------------------------------------------------------------------
+// Grid Payload (v1)
+// -----------------------------------------------------------------------------
+//
+// This is the actual grid data. It is wrapped by GridWireEnvelope.
+// -----------------------------------------------------------------------------
+
+table Grid {
+  plan_id:        string;
+  view_id:        string;
+  window_hash:    string;
+  atom_revision:  long;
+
+  cells:          [ubyte];
+  row_offsets:    [int32];
+  row_masks:      [uint64];
+  string_arena:   [ubyte];
+  string_offsets: [uint32];
+}

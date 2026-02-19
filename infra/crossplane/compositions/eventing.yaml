@@ -1,0 +1,20 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: quantatomai-eventing
+spec:
+  compositeTypeRef:
+    apiVersion: platform.quantatom.ai/v1alpha1
+    kind: XEventing
+  resources:
+    - name: kinesisStream
+      base:
+        apiVersion: kinesis.aws.crossplane.io/v1alpha1
+        kind: Stream
+        spec:
+          forProvider:
+            region: us-east-1
+            shardCount: 1
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: quantatomai-eventing-secret

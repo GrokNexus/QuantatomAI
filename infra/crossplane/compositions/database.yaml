@@ -1,0 +1,22 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: quantatomai-database
+spec:
+  compositeTypeRef:
+    apiVersion: platform.quantatom.ai/v1alpha1
+    kind: XDatabase
+  resources:
+    - name: rdsInstance
+      base:
+        apiVersion: database.aws.crossplane.io/v1beta1
+        kind: RDSInstance
+        spec:
+          forProvider:
+            region: us-east-1
+            dbInstanceClass: db.t3.medium
+            engine: postgres
+            engineVersion: "15"
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: quantatomai-db-secret

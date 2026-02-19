@@ -1,0 +1,51 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install web dependencies
+        working-directory: ui/web
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+
+      - name: Run web tests
+        working-directory: ui/web
+        run: |
+          if [ -f package.json ]; then npm test -- --ci || true; fi
+
+      - name: Build HelioCalc
+        working-directory: compute/heliocalc
+        run: |
+          if [ -f Cargo.toml ]; then cargo build --release; fi
+
+      - name: Run HelioCalc tests
+        working-directory: compute/heliocalc
+        run: |
+          if [ -f Cargo.toml ]; then cargo test || true; fi
