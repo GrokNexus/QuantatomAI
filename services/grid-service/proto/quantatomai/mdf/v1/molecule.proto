@@ -38,4 +38,8 @@ message Molecule {
   
   // Lamport Clock Vector (Serialized) for Causal Consistency
   bytes causality_clock = 9; 
+
+  // Collision Resolution (Red Team Audit Response)
+  // Prevents Top-Down Spreading from overwriting explicit Bottom-Up inputs.
+  bool is_locked = 13;
 }

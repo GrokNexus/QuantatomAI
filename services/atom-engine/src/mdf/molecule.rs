@@ -27,6 +27,9 @@ impl MoleculeSchema {
             Field::new("source_system", DataType::Utf8, false),
             Field::new("security_mask", DataType::UInt64, false),
             Field::new("causality_clock", DataType::Binary, true),
+            
+            // Collision Resolution (Red Team Audit Response)
+            Field::new("is_locked", DataType::Boolean, true),
         ]))
     }
 }

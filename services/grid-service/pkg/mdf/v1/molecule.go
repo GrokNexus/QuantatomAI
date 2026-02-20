@@ -16,17 +16,18 @@ type Molecule struct {
 	NumericValue    *float64 `parquet:"numeric_value,optional"`
 	TextCommentary  *string  `parquet:"text_commentary,optional"`
 	EmbeddingVector []byte   `parquet:"embedding_vector,optional"` // Blob for simplicity in Parquet
-	
+
 	// Ultra Diamond Upgrade: Rich Types
-	DateValue       *int64   `parquet:"date_value,optional"`    // Unix Millis
-	BooleanValue    *bool    `parquet:"boolean_value,optional"`
-	ErrorValue      *string  `parquet:"error_value,optional"`
+	DateValue    *int64  `parquet:"date_value,optional"` // Unix Millis
+	BooleanValue *bool   `parquet:"boolean_value,optional"`
+	ErrorValue   *string `parquet:"error_value,optional"`
 
 	// 3. The Context (The "Why")
 	Timestamp      int64  `parquet:"timestamp"`
 	SourceSystem   string `parquet:"source_system"`
 	SecurityMask   uint64 `parquet:"security_mask"`
 	CausalityClock []byte `parquet:"causality_clock"`
+	IsLocked       bool   `parquet:"is_locked"` // Prevent Top-Down Overwrites
 }
 
 // NewNumericMolecule creates a standard numeric data point.
