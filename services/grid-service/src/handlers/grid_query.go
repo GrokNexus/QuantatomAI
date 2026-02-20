@@ -5,15 +5,16 @@ import (
 	"net/http"
 	"sync"
 
+	"quantatomai/grid-service/src/compute"
+	"quantatomai/grid-service/src/domain"
+	"quantatomai/grid-service/src/planner"
+
 	"github.com/gin-gonic/gin"
-	"quantatomai/grid-service/compute"
-	"quantatomai/grid-service/domain"
-	"quantatomai/grid-service/planner"
 )
 
 // GridQueryRequest encapsulates the full query, projection, and policy parameters.
 type GridQueryRequest struct {
-	planner.GridQuery
+	domain.GridQuery
 	Window   planner.ProjectionWindow `json:"window"`
 	Defaults map[int64]float64        `json:"defaults"`
 }
@@ -108,7 +109,7 @@ func (h *GridHandler) HandleGridQuery(c *gin.Context) {
 	// Important: We need a small fix because ExecutePlan currently calls fetcher.FetchAtoms again.
 	// In production, we'd refactor ExecutePlan to accept the pre-fetched atoms or use a Cache.
 	// For now, we'll implement a "No-Op" fetcher stub that returns our atoms.
-	
+
 	result, _, err = h.planner.ExecutePlan(
 		ctx,
 		plan,

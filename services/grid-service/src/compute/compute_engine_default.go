@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"sync"
 
-	"quantatomai/grid-service/domain"
-	"quantatomai/grid-service/planner"
+	"quantatomai/grid-service/src/domain"
+	"quantatomai/grid-service/src/planner"
 )
 
 //
@@ -248,7 +248,7 @@ func (e *DefaultComputeEngine) StreamPlan(
 	}
 
 	// 2. Stream projection (simplified for blueprint compliance)
-	for key, val := range processed {
+	for _, val := range processed {
 		// In a full implementation, we'd map key to RowIndex/ColIndex using planner axes.
 		cell := domain.ProjectedCell{
 			RowIndex: 0, // Placeholder
@@ -270,7 +270,7 @@ func (e *DefaultComputeEngine) StreamPlan(
 //
 
 // FXAudit returns the audit trail for the first FX transformer in the pipeline.
-func (e *DefaultComputeEngine) FXAudit() *FXAudit {
+func (e *DefaultComputeEngine) FXAudit() map[domain.AtomKey]FXAudit {
 	for _, t := range e.transformers {
 		if ft, ok := t.(*FXTransformer); ok {
 			return ft.GetAudit()
@@ -280,7 +280,7 @@ func (e *DefaultComputeEngine) FXAudit() *FXAudit {
 }
 
 // VarianceAudit returns the audit trail for the first Variance transformer.
-func (e *DefaultComputeEngine) VarianceAudit() *VarianceAudit {
+func (e *DefaultComputeEngine) VarianceAudit() map[domain.AtomKey]VarianceAudit {
 	for _, t := range e.transformers {
 		if vt, ok := t.(*VarianceTransformer); ok {
 			return vt.GetAudit()
@@ -290,11 +290,10 @@ func (e *DefaultComputeEngine) VarianceAudit() *VarianceAudit {
 }
 
 // TimeAudit returns the audit trail for the first Time Intelligence transformer.
-func (e *DefaultComputeEngine) TimeAudit() *TimeAudit {
+func (e *DefaultComputeEngine) TimeAudit() map[domain.AtomKey]TimeAudit {
 	for _, t := range e.transformers {
 		if tt, ok := t.(*TimeIntelligenceTransformer); ok {
-			audit := tt.GetAudit()
-			return &audit
+			return tt.GetAudit()
 		}
 	}
 	return nil
@@ -326,14 +325,6 @@ func IsMissingRateError(err error) bool {
 //   INTERNAL HELPERS
 // ─────────────────────────────────────────────────────────────
 //
-
-func cloneAtomMap(src map[domain.AtomKey]float64) map[domain.AtomKey]float64 {
-	dst := make(map[domain.AtomKey]float64, len(src))
-	for k, v := range src {
-		dst[k] = v
-	}
-	return dst
-}
 
 func splitAtomMap(src map[domain.AtomKey]float64, buckets int) []map[domain.AtomKey]float64 {
 	if buckets <= 1 {

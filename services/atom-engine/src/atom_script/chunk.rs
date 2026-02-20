@@ -17,6 +17,9 @@ pub enum OpCode {
     Lookup, // Pops 3: range, search_val, return_range
     XLookup(usize), // Pops N (Standard args)
     Shift, // Pops 2: Dimension, Offset/Target
+    
+    // Phase 3: Time-Intelligence Shifts
+    TimeShift(u8), // Pops 1 (base), arg is an enum mapping to TimeShiftType
 }
 
 pub struct Chunk {

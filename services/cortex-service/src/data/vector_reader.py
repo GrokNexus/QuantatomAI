@@ -47,7 +47,12 @@ class MDFVectorReader:
         
         ids = pa.array([f"atom_{i}" for i in range(num_atoms)])
         values = pa.array(np.random.randn(num_atoms) * 1000 + 5000) # Centered around 5k
-        embeddings = pa.array([np.random.randn(dims).tolist() for _ in range(num_atoms)])
+        
+        # Ultra-Diamond: Zero-copy NumPy to PyArrow FixedSizeListArray Matrix
+        # Eliminates nested Python lists (.tolist()) and preserves contiguous C-memory array guarantees.
+        flat_embeddings = np.random.randn(num_atoms * dims).astype(np.float32)
+        flat_array = pa.array(flat_embeddings)
+        embeddings = pa.FixedSizeListArray.from_arrays(flat_array, dims)
         
         return pa.Table.from_arrays([ids, values, embeddings], names=["atom_id", "value", "embedding_vector"])
 

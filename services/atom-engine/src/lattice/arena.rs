@@ -22,6 +22,10 @@ impl ArenaShard {
     }
 }
 
+// Circuit Breaker: Prevent infinite memory growth (e.g., from runaway scripts or excessive data loading)
+// 5M cells per shard * 64 shards = 320M cells absolute max per node.
+const MAX_SHARD_CAPACITY: usize = 5_000_000;
+
 /// The LatticeArena manages the memory for all cells in a Grid View.
 /// Ultra-Diamond: Uses Sharded Locking for massive concurrency (5000+ writers).
 pub struct LatticeArena {
@@ -65,6 +69,11 @@ impl LatticeArena {
         if let Some(&idx) = map.get(&hash) {
             vals[idx] = value;
             return idx;
+        }
+
+        // Ultra Diamond Vector 1: LatticeArena Circuit Breaker
+        if vals.len() >= MAX_SHARD_CAPACITY {
+            panic!("Circuit Breaker Tripped: Shard capacity exceeded {} cells. OOM Protection engaged.", MAX_SHARD_CAPACITY);
         }
 
         let idx = vals.len();

@@ -4,8 +4,6 @@ package storage
 import (
 	"unsafe"
 
-	"github.com/google/flatbuffers/go"
-
 	"quantatomai/grid-service/src/gen/fbgrid"
 	"quantatomai/grid-service/src/projection"
 )
@@ -15,8 +13,7 @@ const offHeapDecodeThreshold = 1_000_000
 var GlobalArenaManager *projection.ArenaManager
 
 func DecodeGrid(data []byte, target *projection.GridResult) {
-	buf := flatbuffers.NewByteBuffer(data)
-	fbGrid := fbgrid.GetRootAsGrid(buf.Bytes, buf.Pos)
+	fbGrid := fbgrid.GetRootAsGrid(data, 0)
 
 	target.PlanID = string(fbGrid.PlanId())
 	target.ViewID = string(fbGrid.ViewId())

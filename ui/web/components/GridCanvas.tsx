@@ -11,6 +11,19 @@ interface GridCanvasProps {
 export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Ultra Diamond Vector 4: WebSocket Connection Saturation (10Hz Debounce)
+    const cursorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (cursorTimeoutRef.current) return; // Drop events if we are within the 100ms throttle window
+
+        cursorTimeoutRef.current = setTimeout(() => {
+            // Emit PresenceUpdate over ConnectRPC WebSockets
+            // e.g. stream.send({ ClientID: session.user, x: e.clientX, y: e.clientY })
+            cursorTimeoutRef.current = null;
+        }, 100); // 10Hz max transmission rate
+    };
+
     // Ultra Diamond: Data Ingestion (Layer 6.2)
     useEffect(() => {
         if (data) {
@@ -48,6 +61,12 @@ export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
             @location(0) vUV : vec2<f32>,
           };
 
+          struct EntropyUniforms {
+            anomalyActive : f32, // 1.0 if anomaly, 0.0 otherwise
+            time : f32,
+          };
+          @group(0) @binding(0) var<uniform> entropyState : EntropyUniforms;
+
           @vertex
           fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
             var pos = array<vec2<f32>, 6>(
@@ -64,8 +83,15 @@ export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
           fn fs_main(@location(0) vUV : vec2<f32>) -> @location(0) vec4<f32> {
             var grid = abs(fract(vUV - 0.5) - 0.5) / fwidth(vUV);
             var line = min(grid.x, grid.y);
-            var color = 1.0 - min(line, 1.0);
-            return vec4<f32>(0.2, 0.2, 0.2, color * 0.5); // Grey lines
+            var colorVal = 1.0 - min(line, 1.0);
+            
+            // Base grid (grey)
+            var baseColor = vec4<f32>(0.2, 0.2, 0.2, colorVal * 0.5); 
+            
+            // Phase 8.2 & 8.4: Entropy Spatial Shader (Orange Pulse on Anomaly)
+            var anomalyColor = vec4<f32>(1.0, 0.5, 0.0, colorVal * (0.5 + 0.5 * sin(entropyState.time * 5.0))); 
+            
+            return mix(baseColor, anomalyColor, entropyState.anomalyActive);
           }
         `,
             });
@@ -86,8 +112,38 @@ export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
                 },
             });
 
+            // Create Uniform Buffer for Entropy State
+            const uniformBuffer = device.createBuffer({
+                size: 8, // 2 f32s (anomalyActive padding, time)
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+
+            const bindGroup = device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: uniformBuffer }
+                    }
+                ]
+            });
+
+            // For simulation of the anomaly flash triggered by Redpanda streamer
+            let anomalyActive = 0.0;
+            // E.g., we could set anomalyActive = 1.0 when an event over WebSockets arrives.
+            // For now, let's pulse it briefly every 5 seconds to show the capability
+            setInterval(() => {
+                anomalyActive = 1.0;
+                setTimeout(() => anomalyActive = 0.0, 1000);
+            }, 5000);
+
+            let startTime = performance.now();
+
             // Render Loop
             const frame = () => {
+                const currentTime = (performance.now() - startTime) / 1000.0;
+                device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([anomalyActive, currentTime]));
+
                 const commandEncoder = device.createCommandEncoder();
                 const textureView = context.getCurrentTexture().createView();
 
@@ -95,13 +151,14 @@ export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
                     colorAttachments: [{
                         view: textureView,
                         clearValue: { r: 0.1, g: 0.1, b: 0.1, a: 1.0 }, // Dark Background
-                        loadOp: 'clear',
-                        storeOp: 'store',
+                        loadOp: 'clear' as GPULoadOp,
+                        storeOp: 'store' as GPUStoreOp,
                     }],
                 };
 
                 const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
                 passEncoder.setPipeline(pipeline);
+                passEncoder.setBindGroup(0, bindGroup);
                 passEncoder.draw(6); // Draw Quad
                 passEncoder.end();
 
@@ -115,5 +172,5 @@ export const GridCanvas: React.FC<GridCanvasProps> = ({ data }) => {
         initWebGPU();
     }, []);
 
-    return <canvas ref={canvasRef} width={800} height={600} />;
+    return <canvas ref={canvasRef} width={800} height={600} onMouseMove={handleMouseMove} />;
 };

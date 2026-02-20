@@ -2,10 +2,9 @@ package compute
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
-	"quantatomai/grid-service/domain"
+	"quantatomai/grid-service/src/domain"
 )
 
 //

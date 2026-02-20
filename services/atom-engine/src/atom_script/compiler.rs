@@ -1,4 +1,4 @@
-use crate::atom_script::ast::{BinaryOp, Expr};
+use crate::atom_script::ast::{BinaryOp, Expr, TimeShiftType};
 use crate::atom_script::chunk::{Chunk, OpCode};
 use crate::lattice::metadata::{HierarchyResolver, MockHierarchyResolver};
 
@@ -104,7 +104,20 @@ impl Compiler {
                 }
                 0 // Error or empty
             }
-            // Ultra Diamond: Time Travel (Shift)
+            // Phase 3: Time-Intelligence Shifts
+            Expr::TimeModifier { base, shift_type } => {
+                self.compile_expr(base); // Push the base metric to the stack
+                let shift_code = match shift_type {
+                    TimeShiftType::PriorYear => 1,
+                    TimeShiftType::PriorQuarter => 2,
+                    TimeShiftType::YearToDate => 3,
+                    TimeShiftType::QuarterToDate => 4,
+                    TimeShiftType::PeriodToDate => 5,
+                };
+                self.chunk.write_chunk(OpCode::TimeShift(shift_code));
+                1
+            }
+            // Ultra Diamond: Time Travel (Shift) (->)
             Expr::TimeTravel { lhs, rhs } => {
                 self.compile_expr(lhs);
                 self.compile_expr(rhs);

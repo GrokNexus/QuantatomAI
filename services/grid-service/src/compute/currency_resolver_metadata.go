@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"quantatomai/grid-service/domain"
-	"quantatomai/grid-service/planner"
+	"quantatomai/grid-service/src/domain"
+	"quantatomai/grid-service/src/planner"
 )
 
 //

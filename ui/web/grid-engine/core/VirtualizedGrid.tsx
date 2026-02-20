@@ -1,6 +1,12 @@
 import React from 'react';
 
-export function VirtualizedGrid({ rows, columns, cells }) {
+interface VirtualizedGridProps {
+    rows: any[];
+    columns: any[];
+    cells: any;
+}
+
+export function VirtualizedGrid({ rows, columns, cells }: VirtualizedGridProps) {
     return (
         <div className="grid-renderer">
             <table>

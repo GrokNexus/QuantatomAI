@@ -1,7 +1,13 @@
 package ipc
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
+
+	"github.com/apache/arrow/go/v15/arrow"
+	"github.com/apache/arrow/go/v15/arrow/ipc"
+	"github.com/apache/arrow/go/v15/arrow/memory"
 )
 
 // bufferPool recycles bytes.Buffers to reduce GC pressure.
@@ -20,7 +26,7 @@ func SerializeRecord(record arrow.Record) ([]byte, func(), error) {
 
 	// 2. Create IPC Writer
 	writer := ipc.NewWriter(buf, ipc.WithSchema(record.Schema()), ipc.WithAllocator(memory.DefaultAllocator))
-	
+
 	// 3. Write
 	if err := writer.Write(record); err != nil {
 		writer.Close()

@@ -38,6 +38,24 @@ pub enum Token {
     #[token("->")]
     Arrow,
 
+    // Phase 3: Time-Intelligence Operators
+    #[token("PY")]
+    PriorYear,
+    #[token("PQ")]
+    PriorQuarter,
+    #[token("YTD")]
+    YearToDate,
+    #[token("QTD")]
+    QuarterToDate,
+    #[token("PTD")]
+    PeriodToDate,
+
+    // Phase 3: Time-Intelligence Variance Macros
+    #[token("YOY")]
+    YearOverYear,
+    #[token("QOQ")]
+    QuarterOverQuarter,
+
     // Identifiers (e.g., [Region], Revenue)
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Identifier(String),

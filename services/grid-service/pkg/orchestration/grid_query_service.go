@@ -3,13 +3,11 @@ package orchestration
 import (
 	"context"
 	"fmt"
-	"io"
+
+	gridv1 "quantatomai/grid-service/pkg/grid/v1" // Assuming protoc gen works
+	"quantatomai/grid-service/pkg/ipc"
 
 	"connectrpc.com/connect"
-	"quantatomai/grid-service/pkg/grid/v1" // Assuming protoc gen works
-	"quantatomai/grid-service/pkg/grid/v1/gridv1connect"
-	mdfv1 "quantatomai/grid-service/pkg/mdf/v1"
-	"quantatomai/grid-service/pkg/ipc"
 )
 
 type GridQueryServiceHandler struct {
@@ -24,8 +22,8 @@ func NewGridQueryServiceHandler(client ipc.Client) *GridQueryServiceHandler {
 
 // QueryGrid implements the RPC method.
 func (h *GridQueryServiceHandler) QueryGrid(
-	ctx context.Context, 
-	req *connect.Request[gridv1.QueryGridRequest], 
+	ctx context.Context,
+	req *connect.Request[gridv1.QueryGridRequest],
 	stream *connect.ServerStream[gridv1.GridChunk],
 ) error {
 	// 1. Resolve Plan ID (Mock for now)
@@ -42,7 +40,7 @@ func (h *GridQueryServiceHandler) QueryGrid(
 	// 3. Stream Results (Ultra Diamond: Zero Copy)
 	for reader.Next() {
 		record := reader.Record()
-		
+
 		// Serialize Arrow RecordBatch to Bytes (Zero-Copy Intent)
 		bytes, release, err := ipc.SerializeRecord(record)
 		if err != nil {

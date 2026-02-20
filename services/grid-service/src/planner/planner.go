@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"quantatomai/grid-service/domain"
+	"quantatomai/grid-service/src/domain"
 )
 
 // -----------------------------
@@ -78,9 +78,9 @@ type QueryPlan struct {
 	HotPreferred bool
 
 	// Advanced IO orchestration
-	MetadataRequest any             // mapping.ResultRequest or similar
-	AtomRequest     SparsedBlockRef
-	AtomRevision    string
+	MetadataRequest  any // mapping.ResultRequest or similar
+	AtomRequest      SparsedBlockRef
+	AtomRevision     string
 	AtomRevisionUnix int64
 }
 
@@ -89,7 +89,7 @@ type QueryPlan struct {
 // -----------------------------
 
 type MetadataResolver interface {
-	ResolveMembers(ctx context.Context, dim string, codes []string) ([]MemberInfo, error)
+	ResolveMembers(ctx context.Context, dim string, codes []string, branchId string) ([]MemberInfo, error)
 	ResolveMeasureIDs(ctx context.Context, measures []string) ([]int64, error)
 	ResolveScenarioIDs(ctx context.Context, scenarios []string) ([]int64, error)
 }
@@ -147,7 +147,7 @@ func (p *Planner) BuildQueryPlan(ctx context.Context, q domain.GridQuery) (*Quer
 	// -----------------------------
 	var rowAxes [][]MemberInfo
 	for _, dim := range q.Dimensions.Rows {
-		mems, err := p.metadata.ResolveMembers(ctx, dim, q.Members[dim])
+		mems, err := p.metadata.ResolveMembers(ctx, dim, q.Members[dim], q.BranchID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve row dimension %s: %w", dim, err)
 		}
@@ -159,7 +159,7 @@ func (p *Planner) BuildQueryPlan(ctx context.Context, q domain.GridQuery) (*Quer
 	// -----------------------------
 	var colAxes [][]MemberInfo
 	for _, dim := range q.Dimensions.Columns {
-		mems, err := p.metadata.ResolveMembers(ctx, dim, q.Members[dim])
+		mems, err := p.metadata.ResolveMembers(ctx, dim, q.Members[dim], q.BranchID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve column dimension %s: %w", dim, err)
 		}
@@ -171,7 +171,7 @@ func (p *Planner) BuildQueryPlan(ctx context.Context, q domain.GridQuery) (*Quer
 	// -----------------------------
 	filters := make(map[string][]MemberInfo)
 	for dim, codes := range q.Dimensions.Filters {
-		mems, err := p.metadata.ResolveMembers(ctx, dim, codes)
+		mems, err := p.metadata.ResolveMembers(ctx, dim, codes, q.BranchID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve filter %s: %w", dim, err)
 		}

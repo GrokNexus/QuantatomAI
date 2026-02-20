@@ -1,6 +1,6 @@
 use logos::{Logos, Lexer};
 use crate::atom_script::lexer::Token;
-use crate::atom_script::ast::{Expr, BinaryOp};
+use crate::atom_script::ast::{Expr, BinaryOp, TimeShiftType};
 
 pub struct Parser<'a> {
     lexer: Lexer<'a, Token>,
@@ -103,6 +103,16 @@ impl<'a> Parser<'a> {
                 let args = self.parse_args()?;
                 Expr::FunctionCall { name: "MAX".to_string(), args }
             }
+            // Phase 3: Time-Intelligence Modifiers
+            Some(Token::PriorYear) => self.parse_time_modifier(TimeShiftType::PriorYear)?,
+            Some(Token::PriorQuarter) => self.parse_time_modifier(TimeShiftType::PriorQuarter)?,
+            Some(Token::YearToDate) => self.parse_time_modifier(TimeShiftType::YearToDate)?,
+            Some(Token::QuarterToDate) => self.parse_time_modifier(TimeShiftType::QuarterToDate)?,
+            Some(Token::PeriodToDate) => self.parse_time_modifier(TimeShiftType::PeriodToDate)?,
+            
+            // Phase 3: Time-Intelligence Variances (Macros)
+            Some(Token::YearOverYear) => self.parse_variance_macro(TimeShiftType::PriorYear)?,
+            Some(Token::QuarterOverQuarter) => self.parse_variance_macro(TimeShiftType::PriorQuarter)?,
             Some(Token::LParen) => {
                 self.advance();
                 let expr = self.parse_expr(0)?;
@@ -169,11 +179,78 @@ impl<'a> Parser<'a> {
         self.advance();
         Ok(args)
     }
+
+    // Phase 3: Parses structures like "PY([Revenue])"
+    fn parse_time_modifier(&mut self, shift_type: TimeShiftType) -> Result<Expr, String> {
+        self.advance(); // consume token
+        if self.current_token != Some(Token::LParen) { return Err("Expected '(' after time modifier".to_string()); }
+        self.advance();
+        let base = self.parse_expr(0)?;
+        if self.current_token != Some(Token::RParen) { return Err("Expected ')'".to_string()); }
+        self.advance();
+        Ok(Expr::TimeModifier { base: Box::new(base), shift_type })
+    }
+
+    // Phase 3: Expands YoY([Rev]) into ([Rev] - PY([Rev]))
+    fn parse_variance_macro(&mut self, base_shift: TimeShiftType) -> Result<Expr, String> {
+        self.advance(); // consume token
+        if self.current_token != Some(Token::LParen) { return Err("Expected '(' after variance macro".to_string()); }
+        self.advance();
+        let base = self.parse_expr(0)?;
+        if self.current_token != Some(Token::RParen) { return Err("Expected ')'".to_string()); }
+        self.advance();
+        
+        let py_shifted = Expr::TimeModifier { base: Box::new(base.clone()), shift_type: base_shift };
+        
+        Ok(Expr::Binary {
+            op: BinaryOp::Sub,
+            lhs: Box::new(base),
+            rhs: Box::new(py_shifted)
+        })
+    }
 }
 
 fn infix_binding_power(op: &BinaryOp) -> (u8, u8) {
     match op {
         BinaryOp::Add | BinaryOp::Sub => (1, 2),
         BinaryOp::Mul | BinaryOp::Div => (3, 4),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_variance_macro_expansion() {
+        // Test YoY([Revenue]) -> [Revenue] - PY([Revenue])
+        let mut parser = Parser::new("YOY([Revenue])");
+        let ast = parser.parse().unwrap();
+
+        let expected = Expr::Binary {
+            op: BinaryOp::Sub,
+            lhs: Box::new(Expr::DimensionRef("Revenue".to_string())),
+            rhs: Box::new(Expr::TimeModifier {
+                base: Box::new(Expr::DimensionRef("Revenue".to_string())),
+                shift_type: TimeShiftType::PriorYear,
+            }),
+        };
+
+        assert_eq!(ast, expected);
+
+        // Test QoQ([Margin]) -> [Margin] - PQ([Margin])
+        let mut parser2 = Parser::new("QOQ([Margin])");
+        let ast2 = parser2.parse().unwrap();
+
+        let expected2 = Expr::Binary {
+            op: BinaryOp::Sub,
+            lhs: Box::new(Expr::DimensionRef("Margin".to_string())),
+            rhs: Box::new(Expr::TimeModifier {
+                base: Box::new(Expr::DimensionRef("Margin".to_string())),
+                shift_type: TimeShiftType::PriorQuarter,
+            }),
+        };
+
+        assert_eq!(ast2, expected2);
     }
 }

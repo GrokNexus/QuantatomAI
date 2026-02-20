@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"quantatomai/grid-service/src/planner"
+
 	"github.com/lib/pq"
-	"quantatomai/grid-service/planner"
 )
 
 // -----------------------------
@@ -43,14 +44,19 @@ func NewPostgresMetadataResolver(db *sql.DB, modelID string, timeout time.Durati
 	// Prepared statements using ANY($n) for arrays and soft-delete/effective dating.
 	var err error
 
+	// Ultra-Diamond: Git-Flow Metadata (Layer 8.1)
+	// We query the delta-overlay view (branch_view_members) which automatically
+	// resolves Tombstones and Overrides for the given Branch ID ($1).
 	r.resolveMembersStmt, err = db.Prepare(`
         SELECT m.id, m.code, m.name
-        FROM members m
+        FROM branch_view_members m
         JOIN dimensions d ON m.dimension_id = d.id
-        WHERE d.model_id = $1
-          AND d.name = $2
-          AND m.code = ANY($3)
+        WHERE m.query_branch_id = $1 
+          AND d.model_id = $2
+          AND d.name = $3
+          AND m.code = ANY($4)
           AND m.is_active = TRUE
+          AND m.is_deleted = FALSE -- Ignore Tombstones in this branch
           AND (m.effective_start <= NOW())
           AND (m.effective_end IS NULL OR m.effective_end >= NOW())
         ORDER BY m.sequence ASC, m.code ASC
@@ -118,15 +124,20 @@ func (r *PostgresMetadataResolver) ResolveMembers(
 	ctx context.Context,
 	dim string,
 	codes []string,
+	branchId string, // Git-Flow: Target branch context
 ) ([]planner.MemberInfo, error) {
 	if len(codes) == 0 {
 		return nil, nil
 	}
 
+	if branchId == "" {
+		branchId = "main" // Default to base branch
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	rows, err := r.resolveMembersStmt.QueryContext(ctx, r.modelID, dim, pqStringArray(codes))
+	rows, err := r.resolveMembersStmt.QueryContext(ctx, branchId, r.modelID, dim, pqStringArray(codes))
 	if err != nil {
 		return nil, fmt.Errorf("ResolveMembers query failed: %w", err)
 	}
@@ -234,7 +245,7 @@ func (r *PostgresMetadataResolver) GetCurrencyCode(ctx context.Context, dimensio
 		FROM members 
 		WHERE id = $1 AND dimension_id = $2
 	`, memberID, dimensionID).Scan(&code)
-	
+
 	if err == sql.ErrNoRows {
 		return "", nil
 	}

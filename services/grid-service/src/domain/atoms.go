@@ -1,7 +1,7 @@
 package domain
 
 import (
-    "encoding/binary"
+	"encoding/binary"
 	"hash/fnv"
 	"sort"
 )
@@ -14,8 +14,9 @@ type GridQuery struct {
 		Pages   []string            `json:"pages"`
 		Filters map[string][]string `json:"filters"`
 	} `json:"dimensions"`
-	Members map[string][]string `json:"members"`
-	Stream  bool                `json:"stream,omitempty"`
+	Members  map[string][]string `json:"members"`
+	Stream   bool                `json:"stream,omitempty"`
+	BranchID string              `json:"branchId,omitempty"` // Layer 8.1: Git-Flow Workspace ID
 }
 
 // ProjectedCell represents a single calculated cell for grid display or streaming.
@@ -90,7 +91,7 @@ func (k *AtomKey) HashKey() uint64 {
 
 // AtomWrite represents a writeback operation.
 type AtomWrite struct {
-    Key   AtomKey
-    Value float64
-    User  string
+	Key   AtomKey
+	Value float64
+	User  string
 }

@@ -5,7 +5,7 @@ import (
     "fmt"
     "time"
 
-    "quantatomai/grid-service/domain"
+    "quantatomai/grid-service/src/domain"
 )
 
 type HotStoreClient interface {

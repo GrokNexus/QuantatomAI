@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"hash/crc32"
 
-	"github.com/google/flatbuffers/go"
+	flatbuffers "github.com/google/flatbuffers/go"
 
 	"quantatomai/grid-service/src/gen/fbgrid"
 	"quantatomai/grid-service/src/projection"
@@ -21,10 +21,11 @@ type GridCacheKey struct {
 	ViewID       string
 	WindowHash   string
 	AtomRevision int64
+	BranchID     string // Layer 8.1 Git-Flow Cache Isolation
 }
 
 func (k GridCacheKey) String() string {
-	return fmt.Sprintf("%s:%s:%s:%d", k.PlanID, k.ViewID, k.WindowHash, k.AtomRevision)
+	return fmt.Sprintf("%s:%s:%s:%s:%d", k.PlanID, k.ViewID, k.BranchID, k.WindowHash, k.AtomRevision)
 }
 
 type RedisClient interface {
@@ -86,8 +87,7 @@ func (c *RedisGridCache) Read(
 		return err
 	}
 
-	buf := flatbuffers.NewByteBuffer(data)
-	env := fbgrid.GetRootAsGridWireEnvelope(buf.Bytes, buf.Pos)
+	env := fbgrid.GetRootAsGridWireEnvelope(data, 0)
 
 	if env.WireVersion() != WireVersionV2 {
 		return ErrIncompatibleWireVersion

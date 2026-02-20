@@ -1,17 +1,14 @@
 package compute
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"runtime"
 	"strconv"
 	"sync"
 
-	"quantatomai/grid-service/domain"
-	"quantatomai/grid-service/planner"
+	"quantatomai/grid-service/src/domain"
+	"quantatomai/grid-service/src/planner"
 )
 
 // FastMetadata contains pre-serialized JSON fragments for metadata labels.
@@ -59,7 +56,7 @@ func (p *ProjectionEngine) Stream(
 	// 1. Pre-calculate grid dimensions and resolve axes once
 	rowCombos, rowIDCombos, _ := planner.MaterializeAxisCombos(plan.RowAxes, 64, true)
 	_, colIDCombos, _ := planner.MaterializeAxisCombos(plan.ColAxes, 64, true)
-	
+
 	totalRows := len(rowCombos)
 	if totalRows == 0 {
 		return nil
@@ -67,7 +64,9 @@ func (p *ProjectionEngine) Stream(
 
 	// 2. Hierarchical Dispatch: Parallelize at Row-Range Level
 	rowsPerWorker := (totalRows + p.workerCount - 1) / p.workerCount
-	if rowsPerWorker < 1 { rowsPerWorker = 1 }
+	if rowsPerWorker < 1 {
+		rowsPerWorker = 1
+	}
 
 	type chunkResult struct {
 		index int
@@ -91,7 +90,7 @@ func (p *ProjectionEngine) Stream(
 		wg.Add(1)
 		go func(idx int, s, e int) {
 			defer wg.Done()
-			
+
 			bufPtr := p.bufPool.Get().(*[]byte)
 			*bufPtr = (*bufPtr)[:0] // Reset but keep capacity
 
@@ -119,16 +118,16 @@ func (p *ProjectionEngine) Stream(
 			if pNext.err != nil {
 				return pNext.err
 			}
-			
+
 			if len(*pNext.data) > 0 {
 				if _, err := writer.Write(*pNext.data); err != nil {
 					return err
 				}
 			}
-			
+
 			// Return buffer to pool
 			p.bufPool.Put(pNext.data)
-			
+
 			delete(pending, nextIndex)
 			nextIndex++
 		}

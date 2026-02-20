@@ -2,8 +2,6 @@ package storage
 
 import (
 	"fmt"
-
-	"github.com/google/flatbuffers/go"
 	"quantatomai/grid-service/src/projection"
 )
 

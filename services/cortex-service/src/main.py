@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import pyarrow as pa
 import pyarrow.flight as fl
+from rag import generate_variance_narrative, SynthesisRequest, SynthesisResponse
 
 app = FastAPI(
     title="QuantatomAI Cortex",
@@ -39,16 +40,13 @@ async def generate_baseline(req: ForecastRequest):
         "message": f"Auto-baselining initiated for scope {req.scoping_id}"
     }
 
-@app.post("/api/v1/narrative/variance")
-async def generate_variance_narrative(req: GeneralNarrativeRequest):
+@app.post("/api/v1/narrative/variance", response_model=SynthesisResponse)
+async def generate_variance_narrative_endpoint(req: SynthesisRequest):
     """
-    [STUB] Layer 8.3: Generative Interface
-    Retrieves Audit Log + MDF, uses LLM to explain variance.
+    Phase 8.3: Generative Interface (RAG)
+    Ingests Rust-computed variance drivers and synthesizes an executive narrative.
     """
-    return {
-        "status": "synthsizing",
-        "narrative": f"Variance in {req.target_kpi} is currently under analysis."
-    }
+    return generate_variance_narrative(req)
 
 if __name__ == "__main__":
     import uvicorn

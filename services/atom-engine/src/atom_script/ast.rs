@@ -28,6 +28,20 @@ pub enum Expr {
     // Ultra Diamond: Time Travel
     TimeTravel {
         lhs: Box<Expr>, // e.g. [Revenue]
-        rhs: Box<Expr>, // e.g. [PrevMonth]
+        rhs: Box<Expr>, // previously [PrevMonth], now we transition to TimeModifier
     },
+    // Phase 3: Core Time Modifiers (PY, PQ, YTD, etc)
+    TimeModifier {
+        base: Box<Expr>, // The metric to shift: [Revenue]
+        shift_type: TimeShiftType,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TimeShiftType {
+    PriorYear,
+    PriorQuarter,
+    YearToDate,
+    QuarterToDate,
+    PeriodToDate,
 }

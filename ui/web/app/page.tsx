@@ -20,57 +20,42 @@ export default function Home() {
     }, []);
 
     return (
-        <main style={{
-            height: '100vh',
-            width: '100vw',
+        <div style={{
+            flex: 1,
+            width: '100%',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: '#0a0a0a',
-            color: '#e5e5e5',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            backgroundColor: 'transparent',
+            color: 'var(--foreground-rgb)',
         }}>
             {/* Header: Platform Controls */}
-            <header style={{
-                height: '64px',
-                borderBottom: '1px solid #262626',
+            {/* Sub-Header: Content Controls (Glassmorphic) */}
+            <div style={{
+                padding: '16px 24px',
                 display: 'flex',
+                justifyContent: 'center',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 24px',
-                backgroundColor: 'rgba(23, 23, 23, 0.8)',
+                backgroundColor: 'rgba(100, 116, 139, 0.05)',
+                borderBottom: '1px solid var(--glass-border)',
                 backdropFilter: 'blur(12px)',
                 zIndex: 20
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        backgroundColor: '#2563eb',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '12px'
-                    }}>QA</div>
-                    <h1 style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', color: '#a3a3a3', margin: 0 }}>
-                        QuantatomAI Console
-                    </h1>
-                </div>
-
-                <div style={{ display: 'flex', backgroundColor: 'rgba(38, 38, 38, 0.5)', borderRadius: '8px', padding: '4px', border: '1px solid #404040' }}>
+                <div style={{ display: 'flex', backgroundColor: 'rgba(100, 116, 139, 0.1)', borderRadius: '12px', padding: '6px', border: '1px solid var(--glass-border)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
                     <button
                         onClick={() => setView('grid')}
                         style={{
-                            padding: '6px 16px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
+                            padding: '8px 24px',
+                            borderRadius: '8px',
+                            fontSize: '13px',
                             fontWeight: '600',
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                             backgroundColor: view === 'grid' ? '#3b82f6' : 'transparent',
-                            color: view === 'grid' ? 'white' : '#737373'
+                            color: view === 'grid' ? 'white' : 'inherit',
+                            opacity: view === 'grid' ? 1 : 0.7,
+                            boxShadow: view === 'grid' ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
                         }}
                     >
                         Projector Grid
@@ -78,34 +63,38 @@ export default function Home() {
                     <button
                         onClick={() => setView('chart')}
                         style={{
-                            padding: '6px 16px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
+                            padding: '8px 24px',
+                            borderRadius: '8px',
+                            fontSize: '13px',
                             fontWeight: '600',
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                             backgroundColor: view === 'chart' ? '#3b82f6' : 'transparent',
-                            color: view === 'chart' ? 'white' : '#737373'
+                            color: view === 'chart' ? 'white' : 'inherit',
+                            opacity: view === 'chart' ? 1 : 0.7,
+                            boxShadow: view === 'chart' ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
                         }}
                     >
                         Visualizer
                     </button>
                 </div>
-            </header>
+            </div>
 
             {/* Formula Bar: Layer 7.3 Integration */}
-            <section style={{ padding: '16px', borderBottom: '1px solid #262626', backgroundColor: '#171717' }}>
+            <section style={{ padding: '16px 24px', zIndex: 10 }}>
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    backgroundColor: '#000',
-                    border: '1px solid #262626',
-                    borderRadius: '8px',
-                    padding: '8px'
+                    backgroundColor: 'var(--glass-bg)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    borderRadius: '12px',
+                    padding: '10px 16px'
                 }}>
-                    <span style={{ color: '#3b82f6', fontWeight: 'bold', fontSize: '14px', paddingLeft: '8px' }}>ƒx</span>
+                    <span style={{ color: '#3b82f6', fontWeight: 'bold', fontSize: '16px' }}>ƒx</span>
                     <input
                         value={formula}
                         onChange={(e) => setFormula(e.target.value)}
@@ -114,7 +103,7 @@ export default function Home() {
                             backgroundColor: 'transparent',
                             border: 'none',
                             outline: 'none',
-                            color: '#fff',
+                            color: 'inherit',
                             fontSize: '14px',
                             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
                         }}
@@ -123,44 +112,50 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Content Area: Holographic Projection */}
-            <section style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {view === 'grid' ? (
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '24px',
-                        border: '1px solid #262626',
-                        backgroundColor: '#000',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-                    }}>
-                        <GridCanvas data={mockData} />
-                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: '24px', display: 'flex', justifyContent: 'center' }}>
-                            <div style={{
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                backdropFilter: 'blur(8px)',
-                                padding: '10px 20px',
-                                borderRadius: '9999px',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                fontSize: '10px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.15em',
-                                color: '#a3a3a3',
-                                fontWeight: 'bold'
-                            }}>
-                                <span style={{ color: '#22c55e', marginRight: '8px' }}>●</span>
-                                WebGPU Projection Active: 120 FPS
+            {/* Content Area: Holographic Projection + AI Analyst */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                <section style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {view === 'grid' ? (
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '16px',
+                            border: '1px solid var(--glass-border)',
+                            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                            backdropFilter: 'blur(16px)',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            boxShadow: 'var(--glass-shadow)',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <GridCanvas data={mockData} />
+                            <div style={{ position: 'absolute', left: 0, right: 0, bottom: '24px', display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+                                <div style={{
+                                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                    backdropFilter: 'blur(12px)',
+                                    padding: '8px 16px',
+                                    borderRadius: '9999px',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    fontSize: '11px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.1em',
+                                    color: '#e2e8f0',
+                                    fontWeight: '700',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                }}>
+                                    <span style={{ color: '#10b981', marginRight: '8px', textShadow: '0 0 8px #10b981' }}>●</span>
+                                    WebGPU Projection Active: 120 FPS
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : (
-                    <div style={{ width: '100%', maxWidth: '1200px' }}>
-                        <ChartCanvas data={mockData} type="bar" />
-                    </div>
-                )}
-            </section>
-        </main>
+                    ) : (
+                        <div style={{ width: '100%', maxWidth: '1200px' }}>
+                            <ChartCanvas data={mockData} type="bar" />
+                        </div>
+                    )}
+                </section>
+            </div>
+        </div>
     );
 }

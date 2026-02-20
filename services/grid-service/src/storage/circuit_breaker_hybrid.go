@@ -32,23 +32,23 @@ const (
 )
 
 type HybridBreakerConfig struct {
-	FailureThreshold   int
-	ResetTimeout       time.Duration
-	WindowSize         time.Duration
+	FailureThreshold int
+	ResetTimeout     time.Duration
+	WindowSize       time.Duration
 
 	DistributedKey     string
 	DistributedTTL     time.Duration
 	DistributedEnabled bool
 
-	BaseBackoff        time.Duration
-	MaxBackoff         time.Duration
+	BaseBackoff time.Duration
+	MaxBackoff  time.Duration
 
-	EnableCachedOnly   bool
-	EnableStaleOK      bool
+	EnableCachedOnly bool
+	EnableStaleOK    bool
 
-	HalfOpenMaxTrials  int
+	HalfOpenMaxTrials int
 
-	OnStateChange      func(oldState, newState BreakerState, reason string)
+	OnStateChange func(oldState, newState BreakerState, reason string)
 }
 
 type DistributedStateStore interface {
@@ -149,11 +149,11 @@ type HybridCircuitBreaker struct {
 	cfg   HybridBreakerConfig
 	store DistributedStateStore
 
-	mu           sync.Mutex
-	state        BreakerState
-	openedAt     time.Time
-	retryAfter   time.Time
-	reason       string
+	mu         sync.Mutex
+	state      BreakerState
+	openedAt   time.Time
+	retryAfter time.Time
+	reason     string
 
 	halfOpenTrials atomic.Int32
 	rng            *rand.Rand
@@ -189,14 +189,13 @@ func NewHybridCircuitBreaker(cfg HybridBreakerConfig, store DistributedStateStor
 	return b
 }
 
-func [T any] (b *HybridCircuitBreaker) Execute(
+func ExecuteWithBreaker[T any](
+	b *HybridCircuitBreaker,
 	ctx context.Context,
 	fn func(context.Context) (T, error),
 	cachedFn func(context.Context) (T, bool, error),
 	staleFn func(context.Context) (T, bool, error),
 ) (T, error) {
-	var zero T
-
 	ctx, span := breakerTracer.Start(ctx, "breaker.execute")
 	defer span.End()
 
@@ -220,7 +219,7 @@ func [T any] (b *HybridCircuitBreaker) Execute(
 		if b.cfg.DistributedEnabled && b.store != nil && b.justOpened(now) {
 			go b.propagateOpenDistributed(context.Background(), err)
 		}
-		return b.handleFailureWithFallback(ctx, span, now, err, cachedFn, staleFn)
+		return handleFailureWithFallback(b, ctx, span, now, err, cachedFn, staleFn)
 	}
 
 	// 2. Recovery Path (Full Status Check)
@@ -238,15 +237,15 @@ func [T any] (b *HybridCircuitBreaker) Execute(
 					attribute.String("breaker.state.distributed", string(dState)),
 					attribute.String("breaker.reason.distributed", dReason),
 				)
-				return b.handleOpenWithFallback(ctx, span, now, dRetry, dReason, cachedFn, staleFn)
+				return handleOpenWithFallback(b, ctx, span, now, dRetry, dReason, cachedFn, staleFn)
 			}
 		}
-		return b.handleOpenWithFallback(ctx, span, now, retryAfter, reason, cachedFn, staleFn)
+		return handleOpenWithFallback(b, ctx, span, now, retryAfter, reason, cachedFn, staleFn)
 	}
 
 	if state == BreakerHalfOpen {
 		if !b.allowHalfOpenTrial() {
-			return b.handleOpenWithFallback(ctx, span, now, retryAfter, reason, cachedFn, staleFn)
+			return handleOpenWithFallback(b, ctx, span, now, retryAfter, reason, cachedFn, staleFn)
 		}
 	}
 
@@ -257,7 +256,7 @@ func [T any] (b *HybridCircuitBreaker) Execute(
 		if b.cfg.DistributedEnabled && b.store != nil && b.justOpened(now) {
 			go b.propagateOpenDistributed(context.Background(), err)
 		}
-		return b.handleFailureWithFallback(ctx, span, now, err, cachedFn, staleFn)
+		return handleFailureWithFallback(b, ctx, span, now, err, cachedFn, staleFn)
 	}
 
 	b.recordSuccess(now)
@@ -401,7 +400,8 @@ func (b *HybridCircuitBreaker) transitionLocked(newState BreakerState, reason st
 	}
 }
 
-func [T any] (b *HybridCircuitBreaker) handleOpenWithFallback(
+func handleOpenWithFallback[T any](
+	b *HybridCircuitBreaker,
 	ctx context.Context,
 	span trace.Span,
 	now time.Time,
@@ -441,7 +441,8 @@ func [T any] (b *HybridCircuitBreaker) handleOpenWithFallback(
 	}
 }
 
-func [T any] (b *HybridCircuitBreaker) handleFailureWithFallback(
+func handleFailureWithFallback[T any](
+	b *HybridCircuitBreaker,
 	ctx context.Context,
 	span trace.Span,
 	now time.Time,

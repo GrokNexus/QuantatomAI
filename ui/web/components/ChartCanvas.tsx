@@ -28,20 +28,36 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({ data, type = 'bar' }) 
             };
         }
 
-        // Zero-Materialization Mapper: Convert Arrow Table to ECharts Dataset
-        // We assume the first column is the Dimension (Category) and others are Metrics.
+        // Ultra-Diamond Zero-Materialization Mapper: Convert Arrow Table to ECharts Dataset
+        // We avoid row-by-row iteration which forces V8 to allocate millions of JS objects.
+        // Instead, we extract the underlying C++ / WASM TypedArrays directly from the Arrow Columns.
         const columns = data.schema.fields.map((f: any) => f.name);
-        const source: any[][] = [columns];
 
-        // Transfer Arrow data to ECharts Dataset.
-        // In "Ultra-Diamond", we avoid manual loops where possible, 
-        // but for charting-scale data (10k-100k), this is optimal.
-        for (let i = 0; i < data.numRows; i++) {
-            const row = data.get(i);
-            if (row) {
-                source.push(columns.map((col: string) => row[col]));
-            }
+        // ECharts supports column-oriented dataset sources.
+        const source: Record<string, any> = {};
+        for (const colName of columns) {
+            const vector = data.getChild(colName);
+            // .toArray() returns the underlying TypedArray (e.g. Float64Array) without copying memory
+            source[colName] = vector ? vector.toArray() : [];
         }
+
+        // Create a series for each metric column
+        const seriesDefinitions = columns.slice(1).map((colName: string) => {
+            // Phase 8.4: Auto-Forecast Visual Designation
+            // If a column name implies it's an AI Forecast, render as dashed line
+            const isForecast = colName.toLowerCase().includes('forecast') || colName.toLowerCase().includes('fluxion');
+
+            return {
+                type: isForecast ? 'line' : type,
+                smooth: type === 'line' || isForecast,
+                itemStyle: {
+                    borderRadius: [4, 4, 0, 0],
+                    color: isForecast ? '#10b981' : undefined // Emerald green for Fluxion
+                },
+                lineStyle: isForecast ? { type: 'dashed', width: 2 } : undefined,
+                emphasis: { focus: 'series' }
+            };
+        });
 
         return {
             backgroundColor: 'transparent',
@@ -62,6 +78,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({ data, type = 'bar' }) 
                 containLabel: true
             },
             dataset: {
+                dimensions: columns,
                 source: source
             },
             xAxis: {
@@ -76,15 +93,7 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({ data, type = 'bar' }) 
                 splitLine: { lineStyle: { color: '#222' } },
                 axisLabel: { color: '#888' }
             },
-            // Create a series for each metric column
-            series: columns.slice(1).map((_: string) => ({
-                type: type,
-                smooth: type === 'line',
-                itemStyle: {
-                    borderRadius: [4, 4, 0, 0]
-                },
-                emphasis: { focus: 'series' }
-            }))
+            series: seriesDefinitions
         };
     }, [data, type]);
 

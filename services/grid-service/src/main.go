@@ -12,12 +12,11 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 
-	"quantatomai/grid-service/compute"
-	"quantatomai/grid-service/fetcher"
-	"quantatomai/grid-service/handlers"
-	"quantatomai/grid-service/mapping"
-	"quantatomai/grid-service/planner"
-	"quantatomai/grid-service/storage"
+	"quantatomai/grid-service/src/compute"
+	"quantatomai/grid-service/src/fetcher"
+	"quantatomai/grid-service/src/handlers"
+	"quantatomai/grid-service/src/mapping"
+	"quantatomai/grid-service/src/planner"
 )
 
 func main() {
@@ -36,69 +35,50 @@ func main() {
 	}
 	defer pgMeta.Close()
 
-	cachedMeta := mapping.NewCachedMetadataResolver(pgMeta, 10*time.Minute)
+	cachedMeta := mapping.NewCachedMetadataResolver(pgMeta, 10*time.Minute, 1000)
 	planr := planner.NewPlanner(cachedMeta)
 
 	// 3. Fetching Layer (Hot Tier)
 	// Resilient Redis fetcher with concurrent workers and circuit breaker.
-	atomFetcher := fetcher.NewRedisAtomFetcher(rdb, fetcher.RedisFetcherConfig{
-		ChunkSize:        1000,
-		WorkerCount:      10,
-		FailureThreshold: 5,
-		OpenDuration:     10 * time.Second,
-	})
+	atomFetcher := fetcher.NewRedisAtomFetcher(rdb, "atom-cache:", 5*time.Second)
 
 	// 4. Compute Layer (FX & Multi-Axial)
 	// We use the postgres resolver as the currency provider (implements CurrencyMetadataProvider).
 	// In production, we'd use a dedicated rate provider (e.g. from a market data service).
-	currResolver := compute.NewCurrencyResolverMetadata(pgMeta, []compute.CurrencyDimensionBinding{
-		{Role: compute.DimensionRoleEntity, DimensionID: 101, Index: 0}, // Row 0 = Entity
+	currResolver := compute.NewCurrencyResolverMetadata(pgMeta, compute.CurrencyResolverConfig{
+		Bindings: []compute.CurrencyDimensionBinding{
+			{Role: compute.DimensionRoleEntity, DimensionID: 101, Index: 0}, // Row 0 = Entity
+		},
 	})
 
 	// Placeholder FX provider (would hit fx_rates table)
-	fxProvider := &stubFXProvider{} 
+	fxProvider := &stubFXProvider{}
 
 	fxTransformer := compute.NewFXTransformer(compute.FXConfig{
 		TargetCurrency: "USD",
 		EnableAudit:    true,
 	}, fxProvider, currResolver)
 
-	compEngine := compute.NewDefaultComputeEngine([]compute.AtomTransformer{
-		fxTransformer,
-	})
-
-	// 5. Grid Storage Subsystem (Ultra-Diamond)
-	cfg := storage.NewDefaultCacheConfig()
-	cfg.WireFormat = storage.WireFormatFlatBuffer
-	cfg.EnableChunkedHydration = true
-
-	// nodeID for orchestration; in reality, use os.Hostname()
-	nodeID := "grid-node-master"
-
-	tieredCache, _, err := storage.NewGridSubsystem(
-		context.Background(),
-		rdb,
-		nodeID,
-		cfg,
-		nil, // prefetchRecomputeFn
-		nil, // coordinator
-		nil, // xfetchRefresher
+	compEngine := compute.NewDefaultComputeEngine(
+		compute.WithTransformers(fxTransformer),
 	)
-	if err != nil {
-		log.Fatalf("failed to init grid storage: %v", err)
-	}
+
+	// 5. Grid Storage Subsystem (Deleted/Legacy Tiered Cache)
 
 	// 6. Handler Orchestration
-	gridHandler := handlers.NewGridQueryHandler(
+	gridHandler := handlers.NewGridHandler(
 		planr,
 		atomFetcher,
 		compEngine,
-		nil,         // CircuitBreaker (stubbed)
-		tieredCache,
+		currResolver,
 	)
 
 	// 7. HTTP Routing
 	router := gin.Default()
+
+	// 7.1 Git-Flow Metadata Routing (Layer 8.1)
+	branchHandler := handlers.NewBranchHandler(db)
+	branchHandler.RegisterRoutes(router)
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
@@ -114,7 +94,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("QuantatomAI Grid Service starting on :%s (WireFormat: %s)", port, cfg.WireFormat)
+	log.Printf("QuantatomAI Grid Service starting on :%s", port)
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("failed to run router: %v", err)
 	}

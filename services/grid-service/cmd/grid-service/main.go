@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"quantatomai/grid-service/src/handlers"
+	"quantatomai/grid-service/pkg/orchestration"
 	"quantatomai/grid-service/src/projection"
 	"quantatomai/grid-service/src/storage"
 )
@@ -25,12 +25,18 @@ func (r *RedisClientImpl) Get(ctx context.Context, key string) ([]byte, error) {
 func main() {
 	storage.GlobalArenaManager = projection.NewArenaManager(64 * 1024 * 1024)
 
-	redisClient := &RedisClientImpl{}
-	gridCache := storage.NewRedisGridCache(redisClient)
-	gridHandler := handlers.NewGridQueryHandler(gridCache)
-
 	mux := http.NewServeMux()
-	mux.HandleFunc("/grid/query", gridHandler.HandleGridQuery)
+
+	// Phase 8.1: Fluxion AI Endpoints with strict Opt-In Governance
+	tenantStore := &orchestration.MockTenantStore{}
+
+	// Stub handlers that will eventually route to the Python Inference Engine (Phase 8.3)
+	aiStubHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"status": "Fluxion AI Request Accepted"}`))
+	}
+
+	mux.HandleFunc("/api/v1/fluxion/forecast", orchestration.FluxionMiddleware(tenantStore, aiStubHandler))
+	mux.HandleFunc("/api/v1/fluxion/ask", orchestration.FluxionMiddleware(tenantStore, aiStubHandler))
 
 	server := &http.Server{
 		Addr:              ":8080",

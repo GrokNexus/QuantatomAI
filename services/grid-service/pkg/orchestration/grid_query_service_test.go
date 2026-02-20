@@ -2,11 +2,10 @@ package orchestration
 
 import (
 	"context"
-	"testing"
-	"errors"
-
-	"quantatomai/grid-service/pkg/grid/v1"
+	gridv1 "quantatomai/grid-service/pkg/grid/v1"
 	"quantatomai/grid-service/pkg/ipc"
+	"testing"
+
 	"connectrpc.com/connect"
 	"github.com/apache/arrow/go/v15/arrow"
 	"github.com/apache/arrow/go/v15/arrow/array"
@@ -84,11 +83,11 @@ func TestQueryGrid_Streaming(t *testing.T) {
 
 	b.Field(0).(*array.Int64Builder).AppendValues([]int64{1, 2, 3}, nil)
 	rec := b.NewRecord()
-	// Note: We don't defer release here because the Mock will return it, 
-	// and the service might Release it? serialized bytes? 
+	// Note: We don't defer release here because the Mock will return it,
+	// and the service might Release it? serialized bytes?
 	// Actually RecordReader ownership: usually Reader owns the record returned by Record() until Next() is called again.
 	// We'll let the test clean it up.
-	defer rec.Release() 
+	defer rec.Release()
 
 	// 2. Setup Mocks
 	mockClient := new(MockIPCClient)
@@ -105,7 +104,7 @@ func TestQueryGrid_Streaming(t *testing.T) {
 	mockReader.On("Next").Return(true).Once()
 	// Expectation: Reader.Record() -> returns our record
 	mockReader.On("Record").Return(rec).Once()
-	
+
 	// Expectation: Stream.Send() -> called with serialized bytes
 	// We verify the bytes are not empty
 	mockStream.On("Send", mock.AnythingOfType("*grid.GridChunk")).Return(nil).Run(func(args mock.Arguments) {
@@ -126,7 +125,7 @@ func TestQueryGrid_Streaming(t *testing.T) {
 
 	// 3. Execute
 	handler := NewGridQueryServiceHandler(mockClient)
-	err := handler.QueryGrid(ctx, req, mockStream)
+	err := handler.QueryGrid(ctx, req, &mockStream.ServerStream)
 
 	// 4. Verify
 	assert.NoError(t, err)

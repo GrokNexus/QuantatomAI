@@ -1,7 +1,7 @@
 package compute
 
 import (
-	"quantatomai/grid-service/domain"
+	"quantatomai/grid-service/src/domain"
 )
 
 //
@@ -66,8 +66,6 @@ func extractTimeKey(key domain.AtomKey, timeIndex int) int64 {
 func stripTimeKey(key domain.AtomKey, timeIndex int) domain.AtomKey {
 	k := key
 	if timeIndex >= 0 && timeIndex < len(k.DimIDs) {
-		k.DimIDs = make([]int64, len(key.DimIDs))
-		copy(k.DimIDs, key.DimIDs)
 		k.DimIDs[timeIndex] = 0
 	}
 	return k
@@ -77,8 +75,6 @@ func stripTimeKey(key domain.AtomKey, timeIndex int) domain.AtomKey {
 func withTimeKey(key domain.AtomKey, timeIndex int, periodID int64) domain.AtomKey {
 	k := key
 	if timeIndex >= 0 && timeIndex < len(k.DimIDs) {
-		k.DimIDs = make([]int64, len(key.DimIDs))
-		copy(k.DimIDs, key.DimIDs)
 		k.DimIDs[timeIndex] = periodID
 	}
 	return k

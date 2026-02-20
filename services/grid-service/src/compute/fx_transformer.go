@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"quantatomai/grid-service/domain"
+	"quantatomai/grid-service/src/domain"
 )
 
 //
@@ -150,6 +150,7 @@ func (t *FXTransformer) Apply(
 
 	// Copy-on-write: only clone when we actually change something.
 	out := atoms
+	cloned := false
 
 	// Cache for FX rates: "SRC->TGT" → rate to avoid redundant provider calls in this pass.
 	rateCache := make(map[string]float64)
@@ -197,12 +198,17 @@ func (t *FXTransformer) Apply(
 			rateCache[cacheKey] = rate
 		}
 
-		// 4. Transform Value
+		// Transform Value
 		converted := value * rate
 
 		// First mutation → clone map to maintain immutability of the source.
-		if out == atoms {
-			out = cloneAtomMap(atoms)
+		if !cloned {
+			newOut := make(map[domain.AtomKey]float64, len(atoms))
+			for k, v := range atoms {
+				newOut[k] = v
+			}
+			out = newOut
+			cloned = true
 		}
 		out[key] = converted
 
@@ -228,4 +234,3 @@ func (t *FXTransformer) Apply(
 
 	return out, nil
 }
-

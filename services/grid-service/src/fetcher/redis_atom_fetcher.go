@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"quantatomai/grid-service/domain"
-	"quantatomai/grid-service/planner"
+	"quantatomai/grid-service/src/domain"
+	"quantatomai/grid-service/src/planner"
 )
 
 // CircuitBreakerState represents the current state of the fetcher's resiliency breaker.
