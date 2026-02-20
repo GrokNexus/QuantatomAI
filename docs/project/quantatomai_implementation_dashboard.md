@@ -92,6 +92,11 @@ This is the Master Execution Plan. We build from the **Bottom Up** (Data Soverei
     - [x] Implement `->` Time Travel Operator.
     - [x] **Verification:** Verified O(1) opcodes via unit tests.
 
+- [x] **7.6: Visual Intelligence**
+    - [x] Implement `ChartCanvas` with Apache ECharts.
+    - [x] Create Zero-Materialization Data Mapper.
+    - [x] **Documentation:** `layer_7_6_visual_intelligence_impl.md` created.
+
 ---
 
 ## 🛡️ Enterprise Wrap (The "Moat" Integrity)
@@ -107,9 +112,10 @@ This is the Master Execution Plan. We build from the **Bottom Up** (Data Soverei
 ## 🧠 Layer 8: The Intelligence (Cortex)
 *Objective: The "Autonomous Analyst" – Forecasting, NLP, and Explainability.*
 
-- [ ] **8.1: The Inference Engine**
-    - [ ] Deploy Python Service (FastAPI) + PyTorch.
-    - [ ] Implement `VectorReader` for MDF (Arrow Flight).
+- [x] **8.1: The Inference Engine**
+    - [x] Deploy Python Service (FastAPI) + PyTorch.
+    - [x] Implement `VectorReader` for native MDF ingestion (Arrow).
+    - [x] **Documentation:** `layer_8_1_cortex_inference_engine_impl.md` created.
 
 - [ ] **8.2: The Auto-Forecast**
     - [ ] Implement Transformer Model (TimeGPT) pipeline. (Zero-Draft)

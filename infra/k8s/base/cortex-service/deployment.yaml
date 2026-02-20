@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cortex-service
+  namespace: quantatom
+  labels:
+    app: cortex-service
+    layer: layer-8
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cortex-service
+  template:
+    metadata:
+      labels:
+        app: cortex-service
+        layer: layer-8
+    spec:
+      containers:
+      - name: cortex-service
+        image: quantatom/cortex-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          name: http
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: mdf-storage
+          mountPath: /data/mdf
+      volumes:
+      - name: mdf-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cortex-service
+  namespace: quantatom
+spec:
+  selector:
+    app: cortex-service
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081

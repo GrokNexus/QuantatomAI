@@ -10,3 +10,4 @@ resources:
   - planning-service
   - grid-service
   - web-ui
+  - cortex-service
