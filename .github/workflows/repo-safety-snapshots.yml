@@ -1,0 +1,44 @@
+name: Repo Safety Snapshots
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-safety-snapshots-main
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare snapshot metadata
+        run: |
+          TS_UTC=$(date -u +"%Y%m%d-%H%M%S")
+          SHORT_SHA=$(git rev-parse --short=7 "$GITHUB_SHA")
+          echo "SNAPSHOT_TAG=autosnap-${TS_UTC}-${SHORT_SHA}" >> "$GITHUB_ENV"
+
+      - name: Update moving backup branch
+        run: |
+          git branch -f backup/main-latest "$GITHUB_SHA"
+          git push origin backup/main-latest --force
+
+      - name: Create immutable snapshot tag
+        run: |
+          git tag -a "$SNAPSHOT_TAG" "$GITHUB_SHA" -m "Automated snapshot for $GITHUB_SHA"
+          git push origin "$SNAPSHOT_TAG"
