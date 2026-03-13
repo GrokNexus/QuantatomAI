@@ -9,33 +9,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "ltree";
 CREATE EXTENSION IF NOT EXISTS "vector"; -- Requires pgvector installed
 CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For fuzzy search (Show me "Net Sales")
-
--- ... (Tables define here) ...
-
--- 6. INDEXING STRATEGY (The "Speed")
--- GIST Index for extremely fast hierarchy queries: WHERE path <@ 'Global.NA'
-CREATE INDEX idx_members_path_gist ON dimension_members USING GIST (path);
-CREATE INDEX idx_members_path_btree ON dimension_members USING BTREE (path); -- For sorting
--- Ultra Diamond Upgrade: Trigram Index for "Show me 'Net Sales'"
-CREATE INDEX idx_members_name_trgm ON dimension_members USING GIN (name gin_trgm_ops); 
-CREATE INDEX idx_members_attributes ON dimension_members USING GIN (attributes); -- JSONB queries
-
--- ... (Member Mappings & Security Policies) ...
-
--- 9. AUDIT TRIGGER FUNCTIONS (Prep for Layer 2.3)
-CREATE OR REPLACE FUNCTION update_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Ultra Diamond Upgrade: Apply trigger to ALL modify-able tables
-CREATE TRIGGER trigger_update_app_timestamp BEFORE UPDATE ON apps FOR EACH ROW EXECUTE FUNCTION update_timestamp();
-CREATE TRIGGER trigger_update_dim_timestamp BEFORE UPDATE ON dimensions FOR EACH ROW EXECUTE FUNCTION update_timestamp();
-CREATE TRIGGER trigger_update_mem_timestamp BEFORE UPDATE ON dimension_members FOR EACH ROW EXECUTE FUNCTION update_timestamp();
-CREATE TRIGGER trigger_update_pol_timestamp BEFORE UPDATE ON security_policies FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 CREATE TABLE tenants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
@@ -112,7 +85,7 @@ CREATE TABLE dimension_members (
 -- GIST Index for extremely fast hierarchy queries: WHERE path <@ 'Global.NA'
 CREATE INDEX idx_members_path_gist ON dimension_members USING GIST (path);
 CREATE INDEX idx_members_path_btree ON dimension_members USING BTREE (path); -- For sorting
-CREATE INDEX idx_members_name_trgm ON dimension_members USING GIN (name vector_ops); -- Fuzzy search? No, std btree for exact
+CREATE INDEX idx_members_name_trgm ON dimension_members USING GIN (name gin_trgm_ops);
 CREATE INDEX idx_members_attributes ON dimension_members USING GIN (attributes); -- JSONB queries
 
 -- 7. ATTRIBUTE VALUES (Cross-Reference)

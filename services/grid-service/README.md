@@ -57,3 +57,74 @@ See `docs/api/grid-api.md`.
 
 ## Directory Structure
 
+(omitted)
+
+## Running locally
+
+1) Start dependencies (Postgres + Redis):
+
+```
+cd services/grid-service
+docker-compose up -d
+```
+
+Postgres runs on host port 55432 and includes pgvector via a local image build.
+
+2) Apply migrations (idempotent, embedded):
+
+```
+go run ./src -migrate-only
+```
+
+3) Run the service:
+
+```
+DATABASE_URL=postgres://quantatomai:quantatomai@localhost:55432/quantatomai?sslmode=disable \
+REDIS_URL=localhost:6379 \
+CORS_ORIGINS=http://localhost:3000 \
+go run ./src
+```
+
+4) Health check:
+
+```
+curl http://localhost:8080/health
+```
+
+5) Grid query example:
+
+```
+curl -X POST http://localhost:8080/grid/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dimensions": {"rows": ["Entity", "Product"], "columns": ["Time"], "pages": ["Scenario"], "filters": {"Region": ["NA"]}},
+    "members": {"Entity": ["E100", "E200"], "Product": ["P100", "P200"], "Time": ["2025M01", "2025M02"], "Scenario": ["Working"]}
+  }'
+```
+
+6) Writeback example:
+
+```
+curl -X POST http://localhost:8080/grid/writeback \
+  -H "Content-Type: application/json" \
+  -d '{"cellEdits":[{"dims":{"Entity":"E100","Product":"P200","Time":"2025M01"},"measure":"Revenue","scenario":"Working","value":12345.67}]}'
+```
+
+Environment defaults match `docker-compose.yml` (Postgres user/password/db `quantatomai`, Redis `localhost:6379`). Migrations run automatically on startup; the `-migrate-only` flag seeds the database without launching the HTTP server.
+
+## Seeding synthetic metadata (15 dimensions, ~100k members)
+
+After migrations, load synthetic metadata for UI/testing:
+
+```
+make seed
+```
+
+This inserts 15 dimensions (`Dim_1`..`Dim_15`) and ~100,000 members into the compat tables. Default model is `default_model`; to override, set a PG setting before running the seed, e.g.:
+
+```
+PGPASSWORD=quantatomai psql -h localhost -U quantatomai -d quantatomai \
+  -c "SELECT set_config('gridseed.model_id','your_model',false);" \
+  -f sql/seed/seed_compat.sql
+```
+

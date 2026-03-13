@@ -1,0 +1,12 @@
+.grid-inline-editor {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background-color: var(--color-surface-elevate);
+  color: var(--color-text-main);
+  font: var(--text-body);
+  padding: 0 var(--space-2);
+  pointer-events: auto;
+}
+}

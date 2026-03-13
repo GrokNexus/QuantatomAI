@@ -1,0 +1,18 @@
+/* Health bar width classes */
+.healthWidth68 { width: 68%; }
+.healthWidth92 { width: 92%; }
+/* Add more as needed for other health values */
+.vrGridCard {
+  min-height: 300px;
+  padding: 24px;
+  border-radius: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.healthBar {
+  transition: width 1s;
+}

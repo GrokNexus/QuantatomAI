@@ -1,53 +1,152 @@
-import { useState, useEffect } from 'react';
-import { createPromiseClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
-import { Table, RecordBatchReader } from "apache-arrow";
+import { useEffect, useMemo, useState } from 'react';
 
-// Import generated types (Assuming protoc gen ran)
-// Note: Since we are in a monorepo, we might need to point to generated files or just verify structure.
-// For Layer 6.2 scope, we'll assume standard types or mock them if proto gen is missing.
-// import { GridQueryService } from "../../../../gen/grid/v1/grid_connect";
+interface MemberInfo {
+  id: number;
+  code: string;
+  name: string;
+}
 
-export function useGridQuery(viewId: string) {
+interface CellValue {
+  rowIndex: number;
+  colIndex: number;
+  value: number;
+}
+
+interface GridQueryResponse {
+  rows: MemberInfo[][];
+  columns: MemberInfo[][];
+  cells: CellValue[];
+}
+
+export interface GridData {
+  rows: string[];
+  columns: string[];
+  cells: Record<string, number>;
+}
+
+export interface GridQueryPayload {
+  dimensions?: {
+    rows?: string[];
+    columns?: string[];
+    pages?: string[];
+    filters?: Record<string, string[]>;
+  };
+  members?: Record<string, string[]>;
+  window?: {
+    rowStart?: number;
+    rowEnd?: number;
+    colStart?: number;
+    colEnd?: number;
+  };
+  defaults?: Record<number, number>;
+  stream?: boolean;
+  branchId?: string;
+}
+
+const EMPTY_QUERY: GridQueryPayload = {};
+
+const DEFAULT_QUERY: GridQueryPayload = {
+  dimensions: {
+    rows: ['Entity'],
+    columns: ['Time'],
+    pages: [],
+    filters: {},
+  },
+  members: {
+    Entity: ['North America', 'EMEA', 'APAC'],
+    Time: ['2025', '2026', '2027'],
+    Measure: ['Revenue'],
+    Scenario: ['Actual'],
+  },
+  window: { rowStart: 0, rowEnd: 0, colStart: 0, colEnd: 0 },
+  defaults: {},
+  stream: false,
+};
+
+export function useGridQuery(query?: GridQueryPayload) {
+  const [data, setData] = useState<GridData | null>(null);
   const [rowCount, setRowCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const inputQuery = query ?? EMPTY_QUERY;
+
+  const payload = useMemo(() => ({
+    ...DEFAULT_QUERY,
+    ...inputQuery,
+    dimensions: { ...DEFAULT_QUERY.dimensions, ...inputQuery.dimensions },
+    members: { ...DEFAULT_QUERY.members, ...inputQuery.members },
+    window: { ...DEFAULT_QUERY.window, ...inputQuery.window },
+    defaults: { ...DEFAULT_QUERY.defaults, ...inputQuery.defaults },
+  }), [inputQuery]);
+
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // 1. Create Transport
-        const transport = createConnectTransport({
-          baseUrl: "http://localhost:8080", // Grid Service
+        const endpoint = process.env.NEXT_PUBLIC_GRID_PROXY || '/api/grid';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
         });
 
-        // 2. Create Client matches the service definition
-        // const client = createPromiseClient(GridQueryService, transport);
-        // Since we don't have the generated TS client yet in this environment, 
-        // we will simulate the fetch to prove the "Arrow" parsing logic.
+        if (!res.ok) {
+          throw new Error(`Grid service responded with ${res.status}`);
+        }
 
-        // Simulation of receiving a stream of bytes:
-        console.log("Connecting to Grid Service for View:", viewId);
+        const json = (await res.json()) as GridQueryResponse;
 
-        // In real implementation:
-        // for await (const res of client.queryGrid({ viewId })) {
-        //   if (res.data.case === "arrowRecordBatch") {
-        //      const reader = RecordBatchReader.from(res.data.value);
-        //      ...
-        //   }
-        // }
+        if (!isMounted) return;
 
+        const columns = (json.columns || []).map((combo, idx) => {
+          const label = combo.map((m) => m.name || m.code).filter(Boolean).join(' / ');
+          return label || `Col ${idx + 1}`;
+        });
+
+        const rows = (json.rows || []).map((combo, idx) => {
+          const label = combo.map((m) => m.name || m.code).filter(Boolean).join(' / ');
+          return label || `Row ${idx + 1}`;
+        });
+
+        const cells: Record<string, number> = {};
+        (json.cells || []).forEach((cell) => {
+          const key = `${cell.rowIndex}-${cell.colIndex}`;
+          cells[key] = cell.value;
+        });
+
+        setData({ rows, columns, cells });
+        setRowCount(rows.length);
       } catch (err: any) {
-        console.error("Grid Query Failed", err);
-        setError(err.message);
+        console.error("Grid query failed", err);
+        if (isMounted) {
+          setError(err.message);
+
+          // Fallback demo data to keep UI usable if backend is down
+          const rows = ['North America', 'EMEA', 'APAC', 'LATAM'];
+          const columns = ['Total Revenue', 'Hardware', 'Software', 'Services'];
+          const fallbackCells: Record<string, number> = {};
+          rows.forEach((_, r) => {
+            columns.forEach((_, c) => {
+              fallbackCells[`${r}-${c}`] = Math.round(Math.random() * 5_000_000) / 100;
+            });
+          });
+          setData({ rows, columns, cells: fallbackCells });
+          setRowCount(rows.length);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [viewId]);
 
-  return { rowCount, isLoading, error };
+    return () => { isMounted = false; };
+  }, [payload]);
+
+  return { data, rowCount, isLoading, error };
 }

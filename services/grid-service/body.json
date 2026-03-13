@@ -1,0 +1,16 @@
+{
+  "dimensions": {
+    "rows": ["Entity"],
+    "columns": ["Product"],
+    "pages": [],
+    "filters": {}
+  },
+  "members": {
+    "Entity": ["ENTITY_1"],
+    "Product": ["PRODUCT_1"],
+    "Measure": ["MEASURE_1"],
+    "Scenario": ["SCENARIO_1"]
+  },
+  "window": { "rowStart": 0, "rowEnd": 10, "colStart": 0, "colEnd": 10 },
+  "defaults": { "1": 0 }
+}

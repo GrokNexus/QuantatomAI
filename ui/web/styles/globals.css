@@ -1,70 +1,323 @@
-/* QuantAtomAI Global Styles - The Glass Moat */
-
-:root {
-  /* Bright Glassy Theme (Default) */
-  --foreground-rgb: 30, 41, 59;
-  /* Slate 800 */
-  --background-start-rgb: 248, 250, 252;
-  /* Slate 50 */
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.4);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+/* GlobalShell font family, size, and line height utility */
+.global-shell-font {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--line-height-body);
 }
+/* ==========================================================================
+   QuantAtomAI Global Styles – The Glass Moat Foundation
+   Version: 2026 – Enforces all 20 Core UX/UI Laws
+   ========================================================================== */
 
-[data-theme='dark'] {
-  --foreground-rgb: 248, 250, 252;
-  --background-start-rgb: 15, 23, 42;
-  /* Slate 900 */
-  --glass-bg: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
+/* 1. Font imports – only the ones we actually use */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Aptos:wght@500;600&family=Segoe+UI:wght@400;500;600&family=Roboto:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap');
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
-  /* Applying modern bright background gradient */
-  background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
-    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+/* 2. Import centralized tokens (single source of truth) */
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   3. CSS Reset & Base (Modern 2026 reset – no overflow: hidden!)
+   ========================================================================== */
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
-  /* Forcing Segoe UI and modern stack */
-  font-family: 'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-* {
   box-sizing: border-box;
 }
 
-/* Modern Dynamic Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+html {
+  font-size: 100%;
+  /* 16px base */
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  color-scheme: light dark;
+  /* Respect system preference */
 }
 
-*:hover::-webkit-scrollbar {
-  opacity: 1;
+body {
+  min-height: 100vh;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-body);
+  background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15), var(--color-bg-primary) 70%),
+    var(--color-bg-primary);
+  background-attachment: fixed;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  /* Only x overflow hidden – never y */
+}
+
+/* Subtle background noise texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* Global animated glow orb (slow moving) */
+body::after {
+  content: "";
+  position: fixed;
+  top: 10%;
+  left: 30%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
+  z-index: -2;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: floatOrb 20s infinite alternate ease-in-out;
+}
+
+@keyframes floatOrb {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate(10%, 20%) scale(1.1);
+  }
+}
+
+/* Prevent zoom on iOS when focusing inputs */
+input,
+textarea,
+select {
+  font-size: 16px;
+  /* ≥16px prevents iOS zoom */
+}
+
+/* ==========================================================================
+   4. Scrollbars – Dynamic, theme-aware, modern
+   ========================================================================== */
+:root {
+  --scrollbar-width: 6px;
+  --scrollbar-track: var(--color-neutral-200);
+  --scrollbar-thumb: var(--color-neutral-400);
+  --scrollbar-thumb-hover: var(--color-accent);
+}
+
+html {
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
+  border-radius: var(--radius-pill);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.3);
-  border-radius: 10px;
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--scrollbar-track);
+  /* prevents edge bleed */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.6);
+  background: var(--scrollbar-thumb-hover);
 }
 
-input,
-button,
-textarea {
-  font-family: inherit;
+/* Hide scrollbar when not needed (macOS style) */
+body::-webkit-scrollbar {
+  display: none;
+  /* Only show on hover/scroll */
+}
+
+body:hover::-webkit-scrollbar,
+body:focus-within::-webkit-scrollbar {
+  display: block;
+}
+
+/* ==========================================================================
+   5. Glassmorphism Base (used by all glass components)
+   ========================================================================== */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--glass-shadow);
+  transition: all var(--motion-fluid);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+/* === New 2026 Deep UI: Glass Card === */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card), var(--glass-highlight);
+  transition: var(--transition-glow);
+  position: relative;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card), var(--glass-glow);
+}
+
+/* === Global Interactions (Buttons) === */
+.glass-button {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 16px rgba(0, 0, 0, 0.2), var(--glass-glow);
+  transform: translateY(-2px);
+}
+
+.glass-button:active,
+.glass-button[aria-pressed="true"] {
+  background: rgba(99, 102, 241, 0.2);
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), var(--glass-glow);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* ==========================================================================
+   6. Typography Enforcement (no raw sizes allowed)
+   ========================================================================== */
+h1,
+.heading-1 {
+  font: var(--text-heading-1);
+}
+
+h2,
+.heading-2 {
+  font: var(--text-heading-2);
+}
+
+h3,
+.heading-3 {
+  font: var(--text-heading-3);
+}
+
+p,
+.body {
+  font: var(--text-body);
+}
+
+small,
+.caption {
+  font: var(--text-small);
+}
+
+code,
+pre,
+.mono {
+  font: var(--text-mono);
+}
+
+/* ==========================================================================
+   7. Focus & Interaction States (never missing)
+   ========================================================================== */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   8. High-Contrast Mode (WCAG AAA ready)
+   ========================================================================== */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #dddddd;
+    --color-bg-primary: #000000;
+    --surface: rgba(255, 255, 255, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-border: rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* ==========================================================================
+   9. Print Styles (PDF exports, reports)
+   ========================================================================== */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .glass,
+  [class*="glass"] {
+    background: white !important;
+    backdrop-filter: none !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+
+  nav,
+  aside,
+  .no-print {
+    display: none !important;
+  }
 }

@@ -49,7 +49,7 @@ func (h *GridHandler) HandleGridQuery(c *gin.Context) {
 	// 1. Parse Request
 	var req GridQueryRequest
 	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid grid query request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid grid query request", "detail": err.Error()})
 		return
 	}
 
@@ -92,25 +92,11 @@ func (h *GridHandler) HandleGridQuery(c *gin.Context) {
 		return
 	}
 
-	// 4. Execute Plan (Computation & Projection)
+	// 4. Execute Plan (Computation & Projection) using prefetched atoms
 	// We wrap the request-specific defaults in a policy.
 	defaultPolicy := &planner.FixedDefaultPolicy{Values: req.Defaults}
 
-	result, binaryResult, err := h.planner.ExecutePlan(
-		ctx,
-		plan,
-		nil, // Fetcher already called manually for async optimization
-		h.compute,
-		req.Window,
-		defaultPolicy,
-	)
-	_ = binaryResult // TODO: Support binary response toggle via headers
-
-	// Important: We need a small fix because ExecutePlan currently calls fetcher.FetchAtoms again.
-	// In production, we'd refactor ExecutePlan to accept the pre-fetched atoms or use a Cache.
-	// For now, we'll implement a "No-Op" fetcher stub that returns our atoms.
-
-	result, _, err = h.planner.ExecutePlan(
+	result, _, err := h.planner.ExecutePlan(
 		ctx,
 		plan,
 		&prefetchedFetcher{atoms: atoms},

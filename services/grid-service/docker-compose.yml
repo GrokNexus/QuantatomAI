@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    image: gridservice-postgres:local
+    container_name: gridservice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quantatomai
+      POSTGRES_PASSWORD: quantatomai
+      POSTGRES_DB: quantatomai
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantatomai -d quantatomai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7
+    container_name: gridservice-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  pgdata:

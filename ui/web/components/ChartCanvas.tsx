@@ -83,15 +83,16 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({ data, type = 'bar' }) 
             },
             xAxis: {
                 type: 'category',
-                axisLine: { lineStyle: { color: '#444' } },
-                axisLabel: { color: '#888' },
-                splitLine: { show: false }
+                axisLine: { lineStyle: { color: 'var(--glass-border-color)' } },
+                axisLabel: { color: 'var(--color-text-dim)' },
+                splitLine: { show: false },
+                axisTick: { show: false }
             },
             yAxis: {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#444' } },
-                splitLine: { lineStyle: { color: '#222' } },
-                axisLabel: { color: '#888' }
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: 'var(--glass-border-color)' } },
+                axisLabel: { color: 'var(--color-text-dim)' }
             },
             series: seriesDefinitions
         };
@@ -100,13 +101,13 @@ export const ChartCanvas: React.FC<ChartCanvasProps> = ({ data, type = 'bar' }) 
     return (
         <div style={{
             width: '100%',
-            height: '500px',
-            backgroundColor: 'rgba(23, 23, 23, 0.5)',
-            borderRadius: '24px',
-            border: '1px solid #262626',
-            padding: '24px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(12px)'
+            height: '500px', // or flex: 1 depending on layout
+            backgroundColor: 'var(--color-surface-elevate)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--glass-border-color)',
+            padding: 'var(--space-6)',
+            boxShadow: 'var(--shadow-elevation-3)',
+            backdropFilter: 'var(--glass-panel-blur)'
         }}>
             <ReactECharts
                 option={options}

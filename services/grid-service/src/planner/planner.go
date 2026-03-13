@@ -19,6 +19,30 @@ type MemberInfo struct {
 	Name string `json:"name"`
 }
 
+// DimensionInfo is used for metadata discovery APIs.
+type DimensionInfo struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	IsActive bool   `json:"isActive"`
+}
+
+// MemberNode provides hierarchy-friendly metadata for UI tree rendering.
+type MemberNode struct {
+	ID         int64  `json:"id"`
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	ParentCode string `json:"parentCode,omitempty"`
+	Path       string `json:"path,omitempty"`
+	Sequence   int    `json:"sequence"`
+}
+
+// MemberListOptions controls hierarchy and pagination for member discovery.
+type MemberListOptions struct {
+	ParentCode string
+	Limit      int
+	Offset     int
+}
+
 type AxisKey struct {
 	ModelID string
 	ViewID  string
@@ -92,6 +116,8 @@ type MetadataResolver interface {
 	ResolveMembers(ctx context.Context, dim string, codes []string, branchId string) ([]MemberInfo, error)
 	ResolveMeasureIDs(ctx context.Context, measures []string) ([]int64, error)
 	ResolveScenarioIDs(ctx context.Context, scenarios []string) ([]int64, error)
+	ListDimensions(ctx context.Context) ([]DimensionInfo, error)
+	ListMembers(ctx context.Context, dim string, branchId string, opts MemberListOptions) ([]MemberNode, error)
 }
 
 // ProjectionCache defines a pluggable cache for axis projections.
@@ -108,6 +134,10 @@ type Planner struct {
 
 func NewPlanner(metadata MetadataResolver) *Planner {
 	return &Planner{metadata: metadata}
+}
+
+func (p *Planner) MetadataResolver() MetadataResolver {
+	return p.metadata
 }
 
 // -----------------------------

@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -73,6 +74,32 @@ func (c *CachedMetadataResolver) ResolveScenarioIDs(ctx context.Context, scenari
 		return v.([]int64), nil
 	}
 	res, err := c.inner.ResolveScenarioIDs(ctx, scenarios)
+	if err != nil {
+		return nil, err
+	}
+	c.set(key, res)
+	return res, nil
+}
+
+func (c *CachedMetadataResolver) ListDimensions(ctx context.Context) ([]planner.DimensionInfo, error) {
+	const key = "dims|all"
+	if v, ok := c.get(key); ok {
+		return v.([]planner.DimensionInfo), nil
+	}
+	res, err := c.inner.ListDimensions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.set(key, res)
+	return res, nil
+}
+
+func (c *CachedMetadataResolver) ListMembers(ctx context.Context, dim string, branchId string, opts planner.MemberListOptions) ([]planner.MemberNode, error) {
+	key := c.keyFor("members-list", dim, []string{opts.ParentCode, fmt.Sprint(opts.Limit), fmt.Sprint(opts.Offset)}, branchId)
+	if v, ok := c.get(key); ok {
+		return v.([]planner.MemberNode), nil
+	}
+	res, err := c.inner.ListMembers(ctx, dim, branchId, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,10 @@ import (
 	"connectrpc.com/connect"
 )
 
+type gridChunkSender interface {
+	Send(*gridv1.GridChunk) error
+}
+
 type GridQueryServiceHandler struct {
 	flightClient ipc.Client
 }
@@ -25,6 +29,18 @@ func (h *GridQueryServiceHandler) QueryGrid(
 	ctx context.Context,
 	req *connect.Request[gridv1.QueryGridRequest],
 	stream *connect.ServerStream[gridv1.GridChunk],
+) error {
+	if stream == nil {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("stream cannot be nil"))
+	}
+
+	return h.queryGrid(ctx, req, stream)
+}
+
+func (h *GridQueryServiceHandler) queryGrid(
+	ctx context.Context,
+	req *connect.Request[gridv1.QueryGridRequest],
+	stream gridChunkSender,
 ) error {
 	// 1. Resolve Plan ID (Mock for now)
 	// In real life: Look up View ID -> Get AtomScript Formula -> Submit to Engine

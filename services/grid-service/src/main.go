@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 
+	migrate "quantatomai/grid-service/sql/schema"
 	"quantatomai/grid-service/src/compute"
 	"quantatomai/grid-service/src/fetcher"
 	"quantatomai/grid-service/src/handlers"
@@ -20,6 +23,9 @@ import (
 )
 
 func main() {
+	migrateOnly := flag.Bool("migrate-only", false, "run migrations and exit")
+	flag.Parse()
+
 	// 1. Core Infrastructure Initialization
 	db := initDB()
 	defer db.Close()
@@ -27,13 +33,31 @@ func main() {
 	rdb := initRedis()
 	defer rdb.Close()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := migrate.Run(ctx, db); err != nil {
+		log.Fatalf("failed to run migrations: %v", err)
+	}
+
 	// 2. Metadata & Planning Layer
+	// Model ID is configurable to support multiple apps/models per environment.
+	modelID := os.Getenv("MODEL_ID")
+	if modelID == "" {
+		modelID = "default_model"
+	}
+
 	// We use the cached decorator to avoid slamming Postgres for repeated axis lookups.
-	pgMeta, err := mapping.NewPostgresMetadataResolver(db, "default_model", 2*time.Second)
+	pgMeta, err := mapping.NewPostgresMetadataResolver(db, modelID, 2*time.Second)
 	if err != nil {
 		log.Fatalf("failed to init postgres metadata: %v", err)
 	}
 	defer pgMeta.Close()
+
+	if *migrateOnly {
+		log.Println("migrations applied; exiting per migrate-only flag")
+		return
+	}
 
 	cachedMeta := mapping.NewCachedMetadataResolver(pgMeta, 10*time.Minute, 1000)
 	planr := planner.NewPlanner(cachedMeta)
@@ -72,9 +96,36 @@ func main() {
 		compEngine,
 		currResolver,
 	)
+	metadataHandler := handlers.NewMetadataHandler(planr.MetadataResolver())
 
 	// 7. HTTP Routing
 	router := gin.Default()
+
+	// CORS for UI (configure via CORS_ORIGINS, comma-separated; default allows localhost:3000)
+	router.Use(func(c *gin.Context) {
+		origins := os.Getenv("CORS_ORIGINS")
+		if origins == "" {
+			origins = "http://localhost:3000"
+		}
+		allowed := strings.Split(origins, ",")
+		reqOrigin := c.GetHeader("Origin")
+		for _, o := range allowed {
+			if strings.TrimSpace(o) == reqOrigin {
+				c.Header("Access-Control-Allow-Origin", reqOrigin)
+				c.Header("Vary", "Origin")
+				break
+			}
+		}
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		if c.Request.Method == http.MethodOptions {
+			c.Status(http.StatusNoContent)
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
 
 	// 7.1 Git-Flow Metadata Routing (Layer 8.1)
 	branchHandler := handlers.NewBranchHandler(db)
@@ -84,6 +135,9 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+
+	// Metadata discovery
+	metadataHandler.RegisterRoutes(router)
 
 	// Core API
 	router.POST("/grid/query", gridHandler.HandleGridQuery)
@@ -103,7 +157,7 @@ func main() {
 func initDB() *sql.DB {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/quantatomai?sslmode=disable"
+		dsn = "postgres://quantatomai:quantatomai@localhost:5432/quantatomai?sslmode=disable"
 	}
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -111,6 +165,14 @@ func initDB() *sql.DB {
 	}
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		log.Fatalf("failed to ping db: %v", err)
+	}
 	return db
 }
 

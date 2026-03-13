@@ -27,6 +27,8 @@ type PostgresMetadataResolver struct {
 	resolveMembersStmt  *sql.Stmt
 	resolveMeasuresStmt *sql.Stmt
 	resolveScenStmt     *sql.Stmt
+	listDimsStmt        *sql.Stmt
+	listMembersStmt     *sql.Stmt
 }
 
 // NewPostgresMetadataResolver constructs a new resolver with prepared statements.
@@ -44,23 +46,20 @@ func NewPostgresMetadataResolver(db *sql.DB, modelID string, timeout time.Durati
 	// Prepared statements using ANY($n) for arrays and soft-delete/effective dating.
 	var err error
 
-	// Ultra-Diamond: Git-Flow Metadata (Layer 8.1)
-	// We query the delta-overlay view (branch_view_members) which automatically
-	// resolves Tombstones and Overrides for the given Branch ID ($1).
+	// Compatibility resolver: read from compat tables (branch_id ignored for now).
 	r.resolveMembersStmt, err = db.Prepare(`
-        SELECT m.id, m.code, m.name
-        FROM branch_view_members m
-        JOIN dimensions d ON m.dimension_id = d.id
-        WHERE m.query_branch_id = $1 
-          AND d.model_id = $2
-          AND d.name = $3
-          AND m.code = ANY($4)
-          AND m.is_active = TRUE
-          AND m.is_deleted = FALSE -- Ignore Tombstones in this branch
-          AND (m.effective_start <= NOW())
-          AND (m.effective_end IS NULL OR m.effective_end >= NOW())
-        ORDER BY m.sequence ASC, m.code ASC
-    `)
+				SELECT m.id, m.code, m.name
+				FROM members_compat m
+				JOIN dimensions_compat d ON m.dimension_id = d.id
+				WHERE d.model_id = $1
+					AND d.name = $2
+					AND m.code = ANY($3)
+					AND m.is_active = TRUE
+					AND m.is_deleted = FALSE
+					AND (m.effective_start <= NOW())
+					AND (m.effective_end IS NULL OR m.effective_end >= NOW())
+				ORDER BY m.sequence ASC, m.code ASC
+		`)
 	if err != nil {
 		return nil, fmt.Errorf("prepare resolveMembersStmt: %w", err)
 	}
@@ -93,6 +92,34 @@ func NewPostgresMetadataResolver(db *sql.DB, modelID string, timeout time.Durati
 		return nil, fmt.Errorf("prepare resolveScenStmt: %w", err)
 	}
 
+	r.listDimsStmt, err = db.Prepare(`
+				SELECT name, 'standard' AS type, is_active
+				FROM dimensions_compat
+				WHERE model_id = $1
+				ORDER BY sort_order ASC, name ASC
+		`)
+	if err != nil {
+		return nil, fmt.Errorf("prepare listDimsStmt: %w", err)
+	}
+
+	r.listMembersStmt, err = db.Prepare(`
+				SELECT m.id, m.code, m.name, m.parent_code, m.path, m.sequence
+				FROM members_compat m
+				JOIN dimensions_compat d ON m.dimension_id = d.id
+				WHERE d.model_id = $1
+					AND d.name = $2
+					AND m.is_active = TRUE
+					AND m.is_deleted = FALSE
+					AND (m.effective_start <= NOW())
+					AND (m.effective_end IS NULL OR m.effective_end >= NOW())
+					AND ($3 = '' OR m.parent_code = $3)
+				ORDER BY m.path NULLS LAST, m.sequence ASC, m.code ASC
+				LIMIT $4 OFFSET $5
+		`)
+	if err != nil {
+		return nil, fmt.Errorf("prepare listMembersStmt: %w", err)
+	}
+
 	return r, nil
 }
 
@@ -111,6 +138,16 @@ func (r *PostgresMetadataResolver) Close() error {
 	}
 	if r.resolveScenStmt != nil {
 		if err := r.resolveScenStmt.Close(); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	if r.listDimsStmt != nil {
+		if err := r.listDimsStmt.Close(); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	if r.listMembersStmt != nil {
+		if err := r.listMembersStmt.Close(); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -137,7 +174,7 @@ func (r *PostgresMetadataResolver) ResolveMembers(
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	rows, err := r.resolveMembersStmt.QueryContext(ctx, branchId, r.modelID, dim, pqStringArray(codes))
+	rows, err := r.resolveMembersStmt.QueryContext(ctx, r.modelID, dim, pqStringArray(codes))
 	if err != nil {
 		return nil, fmt.Errorf("ResolveMembers query failed: %w", err)
 	}
@@ -232,6 +269,74 @@ func (r *PostgresMetadataResolver) ResolveScenarioIDs(
 	}
 
 	return ids, nil
+}
+
+// ListDimensions returns active dimensions for the configured model.
+func (r *PostgresMetadataResolver) ListDimensions(ctx context.Context) ([]planner.DimensionInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	rows, err := r.listDimsStmt.QueryContext(ctx, r.modelID)
+	if err != nil {
+		return nil, fmt.Errorf("ListDimensions query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var dims []planner.DimensionInfo
+	for rows.Next() {
+		var d planner.DimensionInfo
+		if err := rows.Scan(&d.Name, &d.Type, &d.IsActive); err != nil {
+			return nil, fmt.Errorf("ListDimensions scan failed: %w", err)
+		}
+		dims = append(dims, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ListDimensions rows error: %w", err)
+	}
+	return dims, nil
+}
+
+// ListMembers returns members for a dimension, including hierarchy hints.
+func (r *PostgresMetadataResolver) ListMembers(ctx context.Context, dim string, branchId string, opts planner.MemberListOptions) ([]planner.MemberNode, error) {
+	if branchId == "" {
+		branchId = "main"
+	}
+	if opts.Limit <= 0 || opts.Limit > 1000 {
+		opts.Limit = 500
+	}
+	if opts.Offset < 0 {
+		opts.Offset = 0
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	rows, err := r.listMembersStmt.QueryContext(ctx, r.modelID, dim, opts.ParentCode, opts.Limit, opts.Offset)
+	if err != nil {
+		return nil, fmt.Errorf("ListMembers query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var nodes []planner.MemberNode
+	for rows.Next() {
+		var n planner.MemberNode
+		var parent sql.NullString
+		var path sql.NullString
+		if err := rows.Scan(&n.ID, &n.Code, &n.Name, &parent, &path, &n.Sequence); err != nil {
+			return nil, fmt.Errorf("ListMembers scan failed: %w", err)
+		}
+		if parent.Valid {
+			n.ParentCode = parent.String
+		}
+		if path.Valid {
+			n.Path = path.String
+		}
+		nodes = append(nodes, n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ListMembers rows error: %w", err)
+	}
+	return nodes, nil
 }
 
 // GetCurrencyCode returns the currency code for a given dimension/member pair.

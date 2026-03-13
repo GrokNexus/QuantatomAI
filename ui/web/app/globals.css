@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme: Midnight Nebula (Dark) */
+[data-theme="midnight-nebula"] {
+	--color-bg-primary: #181c2a;
+	--color-surface-base: #23263a;
+	--color-accent: #6366f1;
+	--color-success: #10b981;
+	--color-warning: #f59e42;
+	--color-error: #ef4444;
+	--color-text-primary: #fff;
+	--color-text-muted: #a1a1aa;
+	--color-border: #2e3250;
+}
+
+/* Theme: Arctic Dawn (Light) */
+[data-theme="arctic-dawn"] {
+	--color-bg-primary: #f8fafc;
+	--color-surface-base: #fff;
+	--color-accent: #6366f1;
+	--color-success: #10b981;
+	--color-warning: #f59e42;
+	--color-error: #ef4444;
+	--color-text-primary: #181c2a;
+	--color-text-muted: #64748b;
+	--color-border: #e5e7eb;
+}
+
+body {
+	background: var(--color-bg-primary);
+	color: var(--color-text-primary);
+}
+
+/* Utility classes for theme variables */
+.bg-[var\(--color-bg-primary\)] { background-color: var(--color-bg-primary) !important; }
+.bg-[var\(--color-surface-base\)] { background-color: var(--color-surface-base) !important; }
+.text-[var\(--color-accent\)] { color: var(--color-accent) !important; }
+.text-[var\(--color-success\)] { color: var(--color-success) !important; }
+.text-[var\(--color-warning\)] { color: var(--color-warning) !important; }
+.text-[var\(--color-error\)] { color: var(--color-error) !important; }
+.text-[var\(--color-text-primary\)] { color: var(--color-text-primary) !important; }
+.text-[var\(--color-text-muted\)] { color: var(--color-text-muted) !important; }
+.border-[var\(--color-border\)] { border-color: var(--color-border) !important; }

@@ -61,7 +61,6 @@ func (m *MockRecordReader) Release() {
 // MockServerStream
 type MockServerStream struct {
 	mock.Mock
-	connect.ServerStream[gridv1.GridChunk] // Embed to satisfy interface
 }
 
 func (m *MockServerStream) Send(msg *gridv1.GridChunk) error {
@@ -107,7 +106,7 @@ func TestQueryGrid_Streaming(t *testing.T) {
 
 	// Expectation: Stream.Send() -> called with serialized bytes
 	// We verify the bytes are not empty
-	mockStream.On("Send", mock.AnythingOfType("*grid.GridChunk")).Return(nil).Run(func(args mock.Arguments) {
+	mockStream.On("Send", mock.AnythingOfType("*gridv1.GridChunk")).Return(nil).Run(func(args mock.Arguments) {
 		chunk := args.Get(0).(*gridv1.GridChunk)
 		data := chunk.Data.(*gridv1.GridChunk_ArrowRecordBatch).ArrowRecordBatch
 		assert.NotEmpty(t, data)
@@ -125,7 +124,7 @@ func TestQueryGrid_Streaming(t *testing.T) {
 
 	// 3. Execute
 	handler := NewGridQueryServiceHandler(mockClient)
-	err := handler.QueryGrid(ctx, req, &mockStream.ServerStream)
+	err := handler.queryGrid(ctx, req, mockStream)
 
 	// 4. Verify
 	assert.NoError(t, err)
