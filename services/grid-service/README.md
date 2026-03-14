@@ -76,6 +76,15 @@ Postgres runs on host port 55432 and includes pgvector via a local image build.
 go run ./src -migrate-only
 ```
 
+Phase 2 tenant-control verification:
+
+```
+DATABASE_URL=postgres://quantatomai:quantatomai@localhost:55432/quantatomai?sslmode=disable \
+go test -run TestRun_Phase2TenantControlPlane -v ./sql/schema
+```
+
+This integration test creates an ephemeral database, applies the embedded migrations through `07_tenant_control_plane.sql`, and verifies tenant propagation triggers, AI policy defaults, write-region uniqueness, and key-domain region enforcement.
+
 3) Run the service:
 
 ```
