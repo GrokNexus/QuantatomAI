@@ -1,0 +1,58 @@
+QuantatomAI GitHub Safe Sync Playbook
+
+Purpose
+- Ensure local work is synced to GitHub without losing existing GitHub history.
+- Use non-destructive sync rules only.
+
+Repository Defaults
+- Remote: origin
+- Main branch: main
+- Safety snapshot prefix: backup/pre-sync-
+
+Golden Rules
+- Never force-push main.
+- Always create and push a backup snapshot branch before sync.
+- If histories diverge, do not overwrite main. Create reconcile branch and merge there.
+
+Primary Command
+- From repository root run:
+  powershell -ExecutionPolicy Bypass -File .\tools\admin-cli\safe-sync-github.ps1
+
+What the script does
+1) Verifies you are in a git repo.
+2) Fails fast if working tree is not clean.
+3) Verifies current branch is main.
+4) Fetches latest origin refs.
+5) Creates a backup branch from current main and pushes it.
+6) Compares ahead/behind between main and origin/main.
+7) Applies safe action:
+   - ahead only: push main
+   - behind only: fast-forward pull
+   - equal: no-op
+   - diverged: create sync/<timestamp>-main-reconcile and stop for merge/PR workflow
+
+Copilot Session Prompt Template
+- Use this exact prompt in a new chat session:
+  Read tools/admin-cli/SYNC_PLAYBOOK.txt and execute the safe sync flow now.
+
+Optional Parameters
+- Alternate remote/branch:
+  powershell -ExecutionPolicy Bypass -File .\tools\admin-cli\safe-sync-github.ps1 -RemoteName origin -BranchName main
+- Skip pushing backup branch (not recommended):
+  powershell -ExecutionPolicy Bypass -File .\tools\admin-cli\safe-sync-github.ps1 -SkipBackupPush
+
+If script stops because working tree is dirty
+1) Review changed files.
+2) Commit what should be versioned, or stash/discard temporary edits.
+3) Run the script again.
+
+If script reports diverged histories
+1) Switch to created reconcile branch.
+2) Merge origin/main.
+3) Resolve conflicts and test.
+4) Push reconcile branch and open PR into main.
+
+Verification Checklist
+- git status --short --branch is clean.
+- local main SHA equals origin/main SHA.
+- New backup branch exists on origin for this sync run.
