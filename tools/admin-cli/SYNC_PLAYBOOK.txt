@@ -7,7 +7,7 @@ Purpose
 Repository Defaults
 - Remote: origin
 - Main branch: main
-- Safety snapshot prefix: backup/pre-sync-
+- Safety snapshot prefix: backup/pre-sync
 
 Golden Rules
 - Never force-push main.
@@ -17,6 +17,8 @@ Golden Rules
 Primary Command
 - From repository root run:
   powershell -ExecutionPolicy Bypass -File .\tools\admin-cli\safe-sync-github.ps1
+- If your PowerShell profile has the alias configured, run:
+  qsync
 
 What the script does
 1) Verifies you are in a git repo.

@@ -2,7 +2,7 @@
 param(
     [string]$RemoteName = "origin",
     [string]$BranchName = "main",
-    [string]$BackupPrefix = "backup/local-pre-sync",
+    [string]$BackupPrefix = "backup/pre-sync",
     [switch]$SkipBackupPush
 )
 
@@ -73,7 +73,7 @@ if (-not $SkipBackupPush) {
 
 Write-Section "Compare local and remote"
 $counts = Invoke-Git -Arguments @("rev-list", "--left-right", "--count", "$localRef...$remoteRef")
-$parts = $counts -split "\s+"
+$parts = $counts.Trim() -split "\s+"
 if ($parts.Count -lt 2) {
     throw "Unable to parse ahead/behind counts from: $counts"
 }
@@ -99,7 +99,7 @@ if ($aheadCount -gt 0 -and $behindCount -eq 0) {
 
 if ($aheadCount -eq 0 -and $behindCount -gt 0) {
     Write-Section "Fast-forward local branch"
-    Invoke-Git -Arguments @("pull", "--ff-only", $RemoteName, $BranchName) | Out-Null
+    Invoke-Git -Arguments @("merge", "--ff-only", $remoteRef) | Out-Null
     Write-Host "Fast-forwarded local '$BranchName' to match '$RemoteName/$BranchName'." -ForegroundColor Green
     exit 0
 }
