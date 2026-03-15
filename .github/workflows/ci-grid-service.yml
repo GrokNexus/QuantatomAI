@@ -252,8 +252,8 @@ jobs:
 
       - name: Verify Profile B Evidence Contract
         working-directory: .
+        shell: pwsh
         run: |
-          pwsh -NoProfile -Command @'
           $ErrorActionPreference = "Stop"
           $resultsRoot = "tools/load-testing/results"
           $runDir = Get-ChildItem -Path $resultsRoot -Directory -Filter "phase4-b-*" |
@@ -312,7 +312,6 @@ jobs:
           }
 
           Write-Host "Validated Profile B evidence contract at: $($runDir.FullName)"
-          '@
 
       - name: Upload Profile B Evidence Bundle
         if: always()
