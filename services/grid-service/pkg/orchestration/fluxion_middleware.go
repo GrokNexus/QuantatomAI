@@ -47,11 +47,13 @@ func FluxionMiddleware(store TenantConfigStore, next http.HandlerFunc) http.Hand
 		if !enabled {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
-			json.NewEncoder(w).Encode(map[string]string{
+			if err := json.NewEncoder(w).Encode(map[string]string{
 				"error":   "Fluxion AI Engine Blocked",
 				"message": "Enterprise AI features are strictly Opt-In. Please enable 'fluxion_ai_enabled' in your Tenant configuration to preserve data sovereignty.",
 				"code":    "ERR_FLUXION_GOVERNANCE_BLOCKED",
-			})
+			}); err != nil {
+				http.Error(w, `{"error": "failed to encode governance response"}`, http.StatusInternalServerError)
+			}
 			return
 		}
 

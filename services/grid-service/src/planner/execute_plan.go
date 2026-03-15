@@ -11,9 +11,6 @@ import (
 // Experimental/Binary Types (Stubs)
 // -----------------------------
 
-// grid package stub for binary/protobuf serialization.
-type gridPackage struct{}
-
 type GridResultBinary struct {
 	Cells []*Cell
 }
@@ -23,12 +20,6 @@ type Cell struct {
 	ColIndex uint32
 	Value    float64
 }
-
-var grid gridPackage
-
-// -----------------------------
-// Execution Orchestrator
-// -----------------------------
 
 // -----------------------------
 // Execution Orchestrator

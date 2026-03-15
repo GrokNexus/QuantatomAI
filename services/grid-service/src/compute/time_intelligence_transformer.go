@@ -296,7 +296,6 @@ func (t *TimeIntelligenceTransformer) applyCumulative(
 			basePeriod = p
 			accSum = 0
 			count = 0
-			lastVal = 0
 		}
 
 		boundaryChanged := false
@@ -320,7 +319,6 @@ func (t *TimeIntelligenceTransformer) applyCumulative(
 			basePeriod = p
 			accSum = 0
 			count = 0
-			lastVal = 0
 		}
 
 		accSum += val

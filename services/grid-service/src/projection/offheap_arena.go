@@ -15,7 +15,6 @@ type OffHeapArena struct {
 	ptr    unsafe.Pointer
 	length int
 	cap    int
-	file   *os.File
 }
 
 func (a *OffHeapArena) Bytes() []byte {

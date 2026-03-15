@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -33,7 +34,10 @@ func main() {
 
 	// Stub handlers that will eventually route to the Python Inference Engine (Phase 8.3)
 	aiStubHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status": "Fluxion AI Request Accepted"}`))
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "Fluxion AI Request Accepted"}); err != nil {
+			http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+		}
 	}
 
 	mux.HandleFunc("/api/v1/fluxion/forecast", orchestration.FluxionMiddleware(tenantStore, aiStubHandler))

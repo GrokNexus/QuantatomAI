@@ -163,12 +163,9 @@ func (r *PostgresMetadataResolver) ResolveMembers(
 	codes []string,
 	branchId string, // Git-Flow: Target branch context
 ) ([]planner.MemberInfo, error) {
+	_ = branchId
 	if len(codes) == 0 {
 		return nil, nil
-	}
-
-	if branchId == "" {
-		branchId = "main" // Default to base branch
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
@@ -298,9 +295,7 @@ func (r *PostgresMetadataResolver) ListDimensions(ctx context.Context) ([]planne
 
 // ListMembers returns members for a dimension, including hierarchy hints.
 func (r *PostgresMetadataResolver) ListMembers(ctx context.Context, dim string, branchId string, opts planner.MemberListOptions) ([]planner.MemberNode, error) {
-	if branchId == "" {
-		branchId = "main"
-	}
+	_ = branchId
 	if opts.Limit <= 0 || opts.Limit > 1000 {
 		opts.Limit = 500
 	}

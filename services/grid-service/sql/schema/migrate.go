@@ -79,12 +79,16 @@ func applyOne(ctx context.Context, db *sql.DB, name, sqlBody string) error {
 	}
 
 	if _, err := tx.ExecContext(ctx, sqlBody); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("exec migration %s: %w (rollback failed: %v)", name, err, rbErr)
+		}
 		return fmt.Errorf("exec migration %s: %w", name, err)
 	}
 
 	if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations(name) VALUES($1)`, name); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("record migration %s: %w (rollback failed: %v)", name, err, rbErr)
+		}
 		return fmt.Errorf("record migration %s: %w", name, err)
 	}
 
