@@ -89,6 +89,8 @@ jobs:
           exit 1
 
       - name: Run Embedded Migrations
+        env:
+          DATABASE_URL: postgres://quantatomai:quantatomai@localhost:55432/quantatomai?sslmode=disable
         run: go run ./src -migrate-only
 
       - name: Run Phase 2 Tenant Control Plane Integration Test
@@ -114,6 +116,8 @@ jobs:
     defaults:
       run:
         working-directory: ./services/grid-service
+    env:
+      PGPORT: 55432
 
     steps:
       - name: Checkout Code
@@ -203,6 +207,8 @@ jobs:
     defaults:
       run:
         working-directory: ./services/grid-service
+    env:
+      PGPORT: 55432
 
     steps:
       - name: Checkout Code
