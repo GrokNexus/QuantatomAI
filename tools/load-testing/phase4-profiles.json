@@ -1,0 +1,64 @@
+{
+  "profiles": [
+    {
+      "id": "A",
+      "name": "Interactive Governed Write Path",
+      "description": "Low-latency interactive edits with workflow lock checks, policy checks, and audit overhead enabled.",
+      "workloadClass": "interactive-write",
+      "governanceControls": [
+        "phase2-tenant-controls",
+        "phase3-metadata-audit",
+        "workflow-lock-checks"
+      ],
+      "successThresholds": {
+        "p95LatencyMs": 500,
+        "tenantFairnessRatioMax": 3.0
+      }
+    },
+    {
+      "id": "B",
+      "name": "Mixed Multi-Tenant Planning Load",
+      "description": "Concurrent read and write planning activity across tenants with quota and governance pressure applied.",
+      "workloadClass": "mixed-read-write",
+      "governanceControls": [
+        "phase2-tenant-controls",
+        "phase3-metadata-audit",
+        "quota-policy-awareness"
+      ],
+      "successThresholds": {
+        "p95LatencyMs": 1500,
+        "tenantFairnessRatioMax": 3.0
+      }
+    },
+    {
+      "id": "C",
+      "name": "Connector Ingest Plus Reconciliation Reads",
+      "description": "Ingest pressure with validation and rejection handling while governed read workloads continue.",
+      "workloadClass": "ingest-plus-read",
+      "governanceControls": [
+        "phase2-tenant-controls",
+        "phase3-ingest-governance",
+        "reconciliation-read-pressure"
+      ],
+      "successThresholds": {
+        "p95LatencyMs": 1500,
+        "tenantFairnessRatioMax": 3.0
+      }
+    },
+    {
+      "id": "D",
+      "name": "Replay And Recovery",
+      "description": "Warm-tier rebuild and replay validation with governance constraints enabled.",
+      "workloadClass": "replay-recovery",
+      "governanceControls": [
+        "phase2-tenant-controls",
+        "phase3-metadata-audit",
+        "workflow-lock-consistency"
+      ],
+      "successThresholds": {
+        "replayCorrectnessInvalidRowsMax": 0,
+        "tenantFairnessRatioMax": 3.0
+      }
+    }
+  ]
+}

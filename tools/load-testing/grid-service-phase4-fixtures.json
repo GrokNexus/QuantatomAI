@@ -1,0 +1,183 @@
+{
+  "profiles": [
+    {
+      "id": "A",
+      "requiresFixtures": false,
+      "description": "In-process serialization benchmark; no database fixtures required."
+    },
+    {
+      "id": "B",
+      "requiresFixtures": true,
+      "description": "Mixed planning workload baseline using tenant-aware control-plane, workflow governance, and synthetic compat metadata.",
+      "steps": [
+        {
+          "name": "migrate-only",
+          "executable": "go",
+          "arguments": [
+            "run",
+            "./services/grid-service/src",
+            "-migrate-only"
+          ]
+        },
+        {
+          "name": "seed-tenant-governance",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase4_tenant_governance_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
+        },
+        {
+          "name": "seed-compat-mixed-load",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/seed_compat.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c gridseed.model_id=phase4_profile_b"
+          }
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "requiresFixtures": true,
+      "description": "Connector and reconciliation pressure baseline using governed tenant fixtures, compat metadata, and ingest governance rows.",
+      "steps": [
+        {
+          "name": "migrate-only",
+          "executable": "go",
+          "arguments": [
+            "run",
+            "./services/grid-service/src",
+            "-migrate-only"
+          ]
+        },
+        {
+          "name": "seed-tenant-governance",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase4_tenant_governance_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
+        },
+        {
+          "name": "seed-compat-ingest-load",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/seed_compat.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c gridseed.model_id=phase4_profile_c"
+          }
+        },
+        {
+          "name": "seed-replay-and-recovery",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase4_replay_recovery_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "requiresFixtures": true,
+      "description": "Replay and recovery baseline using governed tenant fixtures, recovery branches, and quarantined replay batches.",
+      "steps": [
+        {
+          "name": "migrate-only",
+          "executable": "go",
+          "arguments": [
+            "run",
+            "./services/grid-service/src",
+            "-migrate-only"
+          ]
+        },
+        {
+          "name": "seed-tenant-governance",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase4_tenant_governance_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
+        },
+        {
+          "name": "seed-replay-and-recovery",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase4_replay_recovery_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
+        }
+      ]
+    }
+  ]
+}

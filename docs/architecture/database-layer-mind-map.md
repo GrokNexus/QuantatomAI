@@ -85,4 +85,5 @@ flowchart TD
 - Phase 1: baseline docs now exist for storage lifecycle, privacy, federation, and offline conflict semantics.
 - Phase 2: control-plane schema, validation checks, and implementation guide have been added.
 - Phase 3: governance schema now includes immutable metadata audit events, workflow transition controls, promotion governance, and connector staging governance with validation checks.
+- Phase 4: storage and performance hardening is now in progress with benchmark profiles, governance-on measurement requirements, an evidence bundle runner under `tools/load-testing`, and initial acceptance thresholds captured in dedicated implementation guides.
 - Later phases should extend this mind map rather than creating disconnected architecture views.

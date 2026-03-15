@@ -112,7 +112,7 @@ Use this status language when updating the file:
 | 1 | Database Truth Baseline | Partial |
 | 2 | Multi-Tenant Control Plane | In Progress |
 | 3 | Audit, Lineage, and Workflow Governance | In Progress |
-| 4 | Storage and Performance Hardening | Partial |
+| 4 | Storage and Performance Hardening | In Progress |
 | 5 | Metadata Intelligence and Visualization Plane | Designed |
 | 6 | Consolidation and External Reporting Domain Pack | Designed |
 | 7 | AI-Native Operationalization | Designed |
@@ -124,7 +124,11 @@ Use this status language when updating the file:
 - Started Phase 1 execution by filling previously empty architecture specs for storage tiering, multi-cloud federation, offline ICH, and privacy PEV.
 - Started Phase 2 execution with a production-grade tenant control-plane migration, validation checks, an executable migration integration test, a dedicated implementation guide, and a database-layer mind map.
 - Started Phase 3 execution with a production-grade governance migration for immutable metadata audit events, workflow state controls, metadata promotion governance, and connector staging governance plus Phase 3 validation checks and implementation guide.
-- Phases 3 through 7 remain planned but not yet executed in code or detailed subsystem docs.
+- Started Phase 4 execution with a concrete storage and performance hardening implementation guide, benchmark profile taxonomy, governance-on measurement contract, and initial acceptance thresholds.
+- Added Phase 4 runnable artifacts under `tools/load-testing` plus a benchmark evidence template so performance claims can be tied to repeatable evidence bundles.
+- Wired the Phase 4 runner to concrete `grid-service` benchmark commands for the grid query serialization path and CRDT merge path.
+- Expanded `grid-service` fixture preparation from migrate-only and compat seeding into tenant-aware governance fixtures plus replay-and-recovery seed scripts aligned to the real Phase 2 and Phase 3 schema.
+- Phases 5 through 7 remain planned but not yet executed in code or detailed subsystem docs.
 
 ---
 
@@ -346,11 +350,11 @@ Performance claims only matter if they survive durability, audit overhead, tenan
 Read [docs/implementation_guides/database_hardening_multi_agent_playbook.md](docs/implementation_guides/database_hardening_multi_agent_playbook.md) and execute Phase 4. Use the four canonical roles to harden storage lifecycle, concurrency, event recovery, and benchmark evidence for the database layer. Produce or update storage-tier rules, mixed-workload test plans, recovery semantics, and success thresholds that include governance and audit overhead rather than idealized raw compute only.
 
 ### Update This File After Completion
-- Status:
-- Implemented artifacts:
-- Why implemented:
-- Remaining risks:
-- Verification evidence:
+- Status: In Progress
+- Implemented artifacts: [docs/implementation_guides/layer_4_1_storage_performance_hardening_impl.md](docs/implementation_guides/layer_4_1_storage_performance_hardening_impl.md), [tools/load-testing/run-phase4-profile.ps1](tools/load-testing/run-phase4-profile.ps1), [tools/load-testing/run-grid-service-phase4.ps1](tools/load-testing/run-grid-service-phase4.ps1), [tools/load-testing/prepare-grid-service-phase4-fixtures.ps1](tools/load-testing/prepare-grid-service-phase4-fixtures.ps1), [tools/load-testing/grid-service-phase4-fixtures.json](tools/load-testing/grid-service-phase4-fixtures.json), [tools/load-testing/phase4-profiles.json](tools/load-testing/phase4-profiles.json), [docs/implementation_guides/layer_4_2_benchmark_evidence_template.md](docs/implementation_guides/layer_4_2_benchmark_evidence_template.md), [services/grid-service/pkg/orchestration/grid_query_service_benchmark_test.go](services/grid-service/pkg/orchestration/grid_query_service_benchmark_test.go), [services/grid-service/pkg/sync/crdt_benchmark_test.go](services/grid-service/pkg/sync/crdt_benchmark_test.go)
+- Why implemented: Establish a concrete benchmark and recovery hardening framework that includes Phase 2 and Phase 3 governance overhead in performance evidence.
+- Remaining risks: Docker-dependent local execution and database-backed benchmark coverage still need stabilization even after the richer tenant/replay fixture layer was added.
+- Verification evidence: Phase 4 now has explicit benchmark profiles, a runnable evidence-bundle generator, a service-specific benchmark wrapper, a PowerShell-safe fixture runner, tenant-aware governance seed scripts, replay-and-recovery seed scripts, benchmark test entry points in `grid-service`, a benchmark evidence template, measurement contract, recovery contract, and acceptance thresholds documented for repeatable execution.
 
 ---
 
