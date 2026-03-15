@@ -1,0 +1,6 @@
+# Ignore all evidence bundle run folders (timestamped directories)
+# and any result files inside them.
+*
+
+# But keep this .gitignore so the directory is tracked.
+!.gitignore
