@@ -83,7 +83,17 @@ function Get-ThresholdEvaluation {
             default { $metricName = $null }
         }
 
-        if ($null -eq $metricName -or -not $Metrics.ContainsKey($metricName)) {
+        $hasMetric = $false
+        if ($null -ne $metricName) {
+            if ($Metrics -is [System.Collections.IDictionary]) {
+                $hasMetric = $Metrics.Contains($metricName)
+            }
+            else {
+                $hasMetric = $null -ne $Metrics.PSObject.Properties[$metricName]
+            }
+        }
+
+        if ($null -eq $metricName -or -not $hasMetric) {
             $evaluation += [ordered]@{
                 threshold = $thresholdName
                 target = $thresholdTarget
@@ -147,50 +157,65 @@ function New-EvidenceSummary {
         "- $control"
     }
 
-    $content = @(
-        "# Phase 4 Evidence Summary",
-        "",
-        "## Run Metadata",
-        "- Run ID: $RunId",
-        "- Profile: $($SelectedProfile.id) - $($SelectedProfile.name)",
-        "- Git Hash: $GitHash",
-        "- Tenant Count: $TenantCount",
-        "- Duration Seconds: $DurationSeconds",
-        "- Dry Run: $WasDryRun",
-        "- Command: $ExecutedCommand",
-        "",
-        "## Governance Controls",
-        $controlLines,
-        "",
-        "## Threshold Targets",
-        $thresholdLines,
-        "",
-        "## Observed Metrics",
-        "- p50 latency ms:",
-        "- p95 latency ms:",
-        "- p99 latency ms:",
-        "- throughput ops/sec:",
-        "- tenant fairness ratio:",
-        "- audit amplification:",
-        "- replay invalid rows:",
-        "",
-        "## Auto-Extracted Metrics",
-        $(if ($AutoMetrics.Count -eq 0) { "- none" } else { ($AutoMetrics.Keys | ForEach-Object { "- {0}: {1}" -f $_, $AutoMetrics[$_] }) }),
-        "",
-        "## Threshold Evaluation",
-        $(if ($ThresholdEvaluation.Count -eq 0) { "- none" } else { ($ThresholdEvaluation | ForEach-Object {
+    $governanceBlock = if ($controlLines.Count -gt 0) { $controlLines -join [Environment]::NewLine } else { "- none" }
+    $thresholdBlock = if ($thresholdLines.Count -gt 0) { $thresholdLines -join [Environment]::NewLine } else { "- none" }
+    $autoMetricsBlock = if ($AutoMetrics.Count -eq 0) {
+        "- none"
+    }
+    else {
+        ($AutoMetrics.Keys | ForEach-Object { "- {0}: {1}" -f $_, $AutoMetrics[$_] }) -join [Environment]::NewLine
+    }
+    $thresholdEvaluationBlock = if ($ThresholdEvaluation.Count -eq 0) {
+        "- none"
+    }
+    else {
+        ($ThresholdEvaluation | ForEach-Object {
             $actualProperty = $_.PSObject.Properties['actual']
             $reasonProperty = $_.PSObject.Properties['reason']
             $actualDisplay = if ($null -ne $actualProperty) { $actualProperty.Value } else { 'n/a' }
             $reasonDisplay = if ($null -ne $reasonProperty) { [string]$reasonProperty.Value } else { '' }
             "- {0}: status={1}, target={2}, actual={3}{4}" -f $_.threshold, $_.status, $_.target, $actualDisplay, $(if ([string]::IsNullOrWhiteSpace($reasonDisplay)) { '' } else { ", reason=$reasonDisplay" })
-        }) }),
-        "",
-        "## Result",
-        "- Status:",
-        "- Risks:",
-        "- Notes:"
-    ) -join [Environment]::NewLine
+        }) -join [Environment]::NewLine
+    }
+
+    $content = @"
+# Phase 4 Evidence Summary
+
+## Run Metadata
+- Run ID: $RunId
+- Profile: $($SelectedProfile.id) - $($SelectedProfile.name)
+- Git Hash: $GitHash
+- Tenant Count: $TenantCount
+- Duration Seconds: $DurationSeconds
+- Dry Run: $WasDryRun
+- Command: $ExecutedCommand
+
+## Governance Controls
+$governanceBlock
+
+## Threshold Targets
+$thresholdBlock
+
+## Observed Metrics
+- p50 latency ms:
+- p95 latency ms:
+- p99 latency ms:
+- throughput ops/sec:
+- tenant fairness ratio:
+- audit amplification:
+- replay invalid rows:
+
+## Auto-Extracted Metrics
+$autoMetricsBlock
+
+## Threshold Evaluation
+$thresholdEvaluationBlock
+
+## Result
+- Status:
+- Risks:
+- Notes:
+"@
 
     Set-Content -Path $FilePath -Value $content -Encoding ascii
 }
@@ -233,15 +258,18 @@ if (-not $DryRun -and -not [string]::IsNullOrWhiteSpace($Command)) {
     try {
         $nativePreferenceVariable = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
         $priorNativePreference = $null
+        $priorErrorActionPreference = $ErrorActionPreference
         if ($null -ne $nativePreferenceVariable) {
             $priorNativePreference = [bool]$nativePreferenceVariable.Value
             $script:PSNativeCommandUseErrorActionPreference = $false
         }
 
         try {
+            $ErrorActionPreference = "Continue"
             $commandOutput = Invoke-Expression $Command 2>&1 | Out-String
         }
         finally {
+            $ErrorActionPreference = $priorErrorActionPreference
             if ($null -ne $nativePreferenceVariable) {
                 $script:PSNativeCommandUseErrorActionPreference = $priorNativePreference
             }
@@ -262,17 +290,19 @@ $manifestPath = Join-Path $runDirectory "run-manifest.json"
 $summaryPath = Join-Path $runDirectory "evidence-summary.md"
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding ascii
 
-New-EvidenceSummary \
-    -FilePath $summaryPath \
-    -SelectedProfile $selectedProfile \
-    -GitHash $gitHash \
-    -RunId $runId \
-    -ExecutedCommand $executedCommand \
-    -WasDryRun ([bool]$DryRun) \
-    -TenantCount $TenantCount \
-    -DurationSeconds $DurationSeconds \
-    -AutoMetrics $manifest.autoExtractedMetrics \
-    -ThresholdEvaluation ([array]$manifest.thresholdEvaluation)
+$summaryArgs = @{
+    FilePath = $summaryPath
+    SelectedProfile = $selectedProfile
+    GitHash = $gitHash
+    RunId = $runId
+    ExecutedCommand = $executedCommand
+    WasDryRun = [bool]$DryRun
+    TenantCount = $TenantCount
+    DurationSeconds = $DurationSeconds
+    AutoMetrics = $manifest.autoExtractedMetrics
+    ThresholdEvaluation = [array]$manifest.thresholdEvaluation
+}
+New-EvidenceSummary @summaryArgs
 
 Write-Host "Created Phase 4 evidence bundle: $runDirectory"
 Write-Host "Manifest: $manifestPath"

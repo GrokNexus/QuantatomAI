@@ -83,6 +83,13 @@ function Invoke-StructuredFixtureStep {
         [Environment]::SetEnvironmentVariable($environmentVariable.Key, $environmentVariable.Value, 'Process')
     }
 
+    $nativePreferenceVariable = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
+    $priorNativePreference = $null
+    if ($null -ne $nativePreferenceVariable) {
+        $priorNativePreference = [bool]$nativePreferenceVariable.Value
+        $script:PSNativeCommandUseErrorActionPreference = $false
+    }
+
     try {
         if ($useDockerPsqlFallback) {
             Write-Host "Executable '$executable' not found. Falling back to docker exec against gridservice-postgres."
@@ -104,7 +111,9 @@ function Invoke-StructuredFixtureStep {
 
                     $containerScriptPath = "/tmp/{0}" -f ([System.IO.Path]::GetFileName($absoluteHostScriptPath))
                     & docker cp $absoluteHostScriptPath ("gridservice-postgres:{0}" -f $containerScriptPath)
-                    if ($LASTEXITCODE -ne 0) {
+                    $copyExitCodeVariable = Get-Variable -Name LASTEXITCODE -ErrorAction SilentlyContinue
+                    $copyExitCode = if ($null -eq $copyExitCodeVariable) { 0 } else { [int]$copyExitCodeVariable.Value }
+                    if ($copyExitCode -ne 0) {
                         throw "Failed to copy fixture SQL file '$absoluteHostScriptPath' into gridservice-postgres"
                     }
 
@@ -128,11 +137,17 @@ function Invoke-StructuredFixtureStep {
             & $executable @arguments
         }
 
-        if ($LASTEXITCODE -ne 0) {
-            throw "Fixture step '$($Step.name)' failed with code $LASTEXITCODE"
+        $stepExitCodeVariable = Get-Variable -Name LASTEXITCODE -ErrorAction SilentlyContinue
+        $stepExitCode = if ($null -eq $stepExitCodeVariable) { 0 } else { [int]$stepExitCodeVariable.Value }
+        if ($stepExitCode -ne 0) {
+            throw "Fixture step '$($Step.name)' failed with code $stepExitCode"
         }
     }
     finally {
+        if ($null -ne $nativePreferenceVariable) {
+            $script:PSNativeCommandUseErrorActionPreference = $priorNativePreference
+        }
+
         foreach ($environmentVariable in $environmentVariables.GetEnumerator()) {
             [Environment]::SetEnvironmentVariable($environmentVariable.Key, $priorEnvironment[$environmentVariable.Key], 'Process')
         }
