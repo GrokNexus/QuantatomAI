@@ -23,6 +23,11 @@ FROM metadata_audit_events mae
 JOIN apps a ON a.id = mae.app_id
 WHERE mae.tenant_id IS DISTINCT FROM a.tenant_id;
 
+SELECT COUNT(*) AS replay_invalid_rows
+FROM metadata_audit_events
+WHERE entity_type = 'replay-window'
+    AND (tenant_id IS NULL OR app_id IS NULL);
+
 -- 2. Enforce minimum seeded fixture footprint.
 DO $$
 DECLARE

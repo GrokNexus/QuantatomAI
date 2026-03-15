@@ -36,6 +36,12 @@ Dry-run profile C with fixture preparation:
 pwsh -File tools/load-testing/run-grid-service-phase4.ps1 -Profile C -PrepareFixtures -DryRun
 ```
 
+Run profile D in database-backed mode (fixture smoke SQL path):
+
+```powershell
+pwsh -File tools/load-testing/run-grid-service-phase4.ps1 -Profile D -DatabaseBacked -PrepareFixtures
+```
+
 Prepare replay fixtures against a non-default database target:
 
 ```powershell
@@ -60,6 +66,10 @@ Each run creates a folder under `tools/load-testing/results/` with:
 - `run-manifest.json`: profile metadata, environment hints, and execution outcome
 - `evidence-summary.md`: benchmark summary template for manual or automated completion
 - `command-output.txt`: captured command output when `-Command` is provided
+
+`run-manifest.json` now also includes:
+- `autoExtractedMetrics`: best-effort parsed metrics from command output (for example p95 latency derived from `ns/op` and replay invalid rows)
+- `thresholdEvaluation`: per-threshold `pass`/`fail`/`not_evaluated` status based on extracted metrics
 
 ## Working Rule
 Do not publish benchmark claims from ad hoc commands alone. Record the run through `run-phase4-profile.ps1` so each evidence bundle includes:

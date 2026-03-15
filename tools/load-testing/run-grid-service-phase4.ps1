@@ -5,6 +5,7 @@ param(
     [string]$Profile,
 
     [switch]$PrepareFixtures,
+    [switch]$DatabaseBacked,
     [switch]$DryRun,
     [string]$DatabaseHost = "localhost",
     [string]$DatabaseUser = "quantatomai",
@@ -16,18 +17,38 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Get-LastExitCodeOrZero {
+    $lastExitCodeVariable = Get-Variable -Name LASTEXITCODE -ErrorAction SilentlyContinue
+    if ($null -eq $lastExitCodeVariable) {
+        return 0
+    }
+
+    return [int]$lastExitCodeVariable.Value
+}
+
 $workspaceRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $phase4Runner = Join-Path $PSScriptRoot "run-phase4-profile.ps1"
 $fixturePreparer = Join-Path $PSScriptRoot "prepare-grid-service-phase4-fixtures.ps1"
 
 $commandMap = @{
-    "A" = "go test -run ^$ -bench BenchmarkGridQueryServiceSingleRecord -benchmem ./services/grid-service/pkg/orchestration"
-    "B" = "go test -run ^$ -bench BenchmarkGridQueryServiceLargeRecord -benchmem ./services/grid-service/pkg/orchestration"
-    "C" = "go test -run ^$ -bench BenchmarkLWWElementSetMergeSequential -benchmem ./services/grid-service/pkg/sync"
-    "D" = "go test -run ^$ -bench BenchmarkLWWElementSetMergeConflictHeavy -benchmem ./services/grid-service/pkg/sync"
+    "A" = "go -C services/grid-service test -run ^$ -bench BenchmarkGridQueryServiceSingleRecord -benchmem ./pkg/orchestration"
+    "B" = "go -C services/grid-service test -run ^$ -bench BenchmarkGridQueryServiceLargeRecord -benchmem ./pkg/orchestration"
+    "C" = "go -C services/grid-service test -run ^$ -bench BenchmarkLWWElementSetMergeSequential -benchmem ./pkg/sync"
+    "D" = "go -C services/grid-service test -run ^$ -bench BenchmarkLWWElementSetMergeConflictHeavy -benchmem ./pkg/sync"
 }
 
-$selectedCommand = $commandMap[$Profile]
+$databaseCommandMap = @{
+    "C" = "docker cp services/grid-service/sql/validation/phase4_fixture_smoke_checks.sql gridservice-postgres:/tmp/phase4_fixture_smoke_checks.sql; docker exec -i gridservice-postgres psql -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f /tmp/phase4_fixture_smoke_checks.sql"
+    "D" = "docker cp services/grid-service/sql/validation/phase4_fixture_smoke_checks.sql gridservice-postgres:/tmp/phase4_fixture_smoke_checks.sql; docker exec -i gridservice-postgres psql -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f /tmp/phase4_fixture_smoke_checks.sql"
+}
+
+$selectedCommand = if ($DatabaseBacked -and $databaseCommandMap.ContainsKey($Profile)) {
+    $databaseCommandMap[$Profile]
+}
+else {
+    $commandMap[$Profile]
+}
+
 if (-not $selectedCommand) {
     throw "No grid-service command is mapped for profile '$Profile'"
 }
@@ -46,8 +67,9 @@ try {
         }
 
         & $fixturePreparer @fixtureArgs
-        if ($LASTEXITCODE -ne 0) {
-            throw "Fixture preparation exited with code $LASTEXITCODE"
+        $fixtureExitCode = Get-LastExitCodeOrZero
+        if ($fixtureExitCode -ne 0) {
+            throw "Fixture preparation exited with code $fixtureExitCode"
         }
     }
 
@@ -63,8 +85,9 @@ try {
     }
 
     & $phase4Runner @runnerArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "Phase 4 runner exited with code $LASTEXITCODE"
+    $runnerExitCode = Get-LastExitCodeOrZero
+    if ($runnerExitCode -ne 0) {
+        throw "Phase 4 runner exited with code $runnerExitCode"
     }
 }
 finally {

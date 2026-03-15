@@ -14,6 +14,100 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Get-FirstNumericMatch {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Text,
+        [Parameter(Mandatory = $true)]
+        [string]$Pattern,
+        [switch]$Last
+    )
+
+    $matches = [System.Text.RegularExpressions.Regex]::Matches($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($matches.Count -eq 0) {
+        return $null
+    }
+
+    $index = if ($Last) { $matches.Count - 1 } else { 0 }
+    return [double]$matches[$index].Groups[1].Value
+}
+
+function Get-AutoExtractedMetrics {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CommandOutput
+    )
+
+    $metrics = [ordered]@{}
+
+    $nsPerOp = Get-FirstNumericMatch -Text $CommandOutput -Pattern 'Benchmark\S+\s+\d+\s+([0-9]+(?:\.[0-9]+)?)\s+ns/op' -Last
+    if ($null -ne $nsPerOp -and $nsPerOp -gt 0) {
+        $metrics.p95LatencyMs = [math]::Round($nsPerOp / 1000000.0, 3)
+        $metrics.throughputOpsPerSec = [math]::Round(1000000000.0 / $nsPerOp, 2)
+    }
+
+    $tenantFairnessRatio = Get-FirstNumericMatch -Text $CommandOutput -Pattern 'tenant[_ ]fairness[_ ]ratio\s*(?:\||:|=)\s*([0-9]+(?:\.[0-9]+)?)' -Last
+    if ($null -ne $tenantFairnessRatio) {
+        $metrics.tenantFairnessRatio = [math]::Round($tenantFairnessRatio, 4)
+    }
+
+    $replayInvalidRows = Get-FirstNumericMatch -Text $CommandOutput -Pattern 'replay_invalid_rows\s*\n[-\s\+\|]*\n\s*([0-9]+)' -Last
+    if ($null -eq $replayInvalidRows) {
+        $replayInvalidRows = Get-FirstNumericMatch -Text $CommandOutput -Pattern 'replay[_ ]invalid[_ ]rows\s*(?:\||:|=)\s*([0-9]+)' -Last
+    }
+    if ($null -ne $replayInvalidRows) {
+        $metrics.replayInvalidRows = [int]$replayInvalidRows
+    }
+
+    return $metrics
+}
+
+function Get-ThresholdEvaluation {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$SelectedProfile,
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IDictionary]$Metrics
+    )
+
+    $evaluation = @()
+    foreach ($threshold in $SelectedProfile.successThresholds.PSObject.Properties) {
+        $thresholdName = [string]$threshold.Name
+        $thresholdTarget = [double]$threshold.Value
+        $metricName = $null
+
+        switch ($thresholdName) {
+            'p95LatencyMs' { $metricName = 'p95LatencyMs' }
+            'tenantFairnessRatioMax' { $metricName = 'tenantFairnessRatio' }
+            'replayCorrectnessInvalidRowsMax' { $metricName = 'replayInvalidRows' }
+            default { $metricName = $null }
+        }
+
+        if ($null -eq $metricName -or -not $Metrics.ContainsKey($metricName)) {
+            $evaluation += [ordered]@{
+                threshold = $thresholdName
+                target = $thresholdTarget
+                status = 'not_evaluated'
+                reason = "metric '$metricName' not found in output"
+            }
+            continue
+        }
+
+        $actualValue = [double]$Metrics[$metricName]
+        $passed = $actualValue -le $thresholdTarget
+
+        $evaluation += [ordered]@{
+            threshold = $thresholdName
+            target = $thresholdTarget
+            actual = $actualValue
+            status = if ($passed) { 'pass' } else { 'fail' }
+            metric = $metricName
+        }
+    }
+
+    return $evaluation
+}
+
 function Get-GitHash {
     $hash = & git rev-parse HEAD 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -40,7 +134,9 @@ function New-EvidenceSummary {
         [Parameter(Mandatory = $true)]
         [int]$TenantCount,
         [Parameter(Mandatory = $true)]
-        [int]$DurationSeconds
+        [int]$DurationSeconds,
+        [System.Collections.IDictionary]$AutoMetrics = @{},
+        [array]$ThresholdEvaluation = @()
     )
 
     $thresholdLines = foreach ($property in $SelectedProfile.successThresholds.PSObject.Properties) {
@@ -77,6 +173,18 @@ function New-EvidenceSummary {
         "- tenant fairness ratio:",
         "- audit amplification:",
         "- replay invalid rows:",
+        "",
+        "## Auto-Extracted Metrics",
+        $(if ($AutoMetrics.Count -eq 0) { "- none" } else { ($AutoMetrics.Keys | ForEach-Object { "- {0}: {1}" -f $_, $AutoMetrics[$_] }) }),
+        "",
+        "## Threshold Evaluation",
+        $(if ($ThresholdEvaluation.Count -eq 0) { "- none" } else { ($ThresholdEvaluation | ForEach-Object {
+            $actualProperty = $_.PSObject.Properties['actual']
+            $reasonProperty = $_.PSObject.Properties['reason']
+            $actualDisplay = if ($null -ne $actualProperty) { $actualProperty.Value } else { 'n/a' }
+            $reasonDisplay = if ($null -ne $reasonProperty) { [string]$reasonProperty.Value } else { '' }
+            "- {0}: status={1}, target={2}, actual={3}{4}" -f $_.threshold, $_.status, $_.target, $actualDisplay, $(if ([string]::IsNullOrWhiteSpace($reasonDisplay)) { '' } else { ", reason=$reasonDisplay" })
+        }) }),
         "",
         "## Result",
         "- Status:",
@@ -116,13 +224,33 @@ $manifest = [ordered]@{
     command = $executedCommand
     commandExitCode = $null
     commandOutputFile = if ([string]::IsNullOrWhiteSpace($Command)) { $null } else { "command-output.txt" }
+    autoExtractedMetrics = @{}
+    thresholdEvaluation = @()
 }
 
 if (-not $DryRun -and -not [string]::IsNullOrWhiteSpace($Command)) {
     Push-Location $workspaceRoot
     try {
-        $commandOutput = Invoke-Expression $Command 2>&1 | Out-String
-        $manifest.commandExitCode = $LASTEXITCODE
+        $nativePreferenceVariable = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
+        $priorNativePreference = $null
+        if ($null -ne $nativePreferenceVariable) {
+            $priorNativePreference = [bool]$nativePreferenceVariable.Value
+            $script:PSNativeCommandUseErrorActionPreference = $false
+        }
+
+        try {
+            $commandOutput = Invoke-Expression $Command 2>&1 | Out-String
+        }
+        finally {
+            if ($null -ne $nativePreferenceVariable) {
+                $script:PSNativeCommandUseErrorActionPreference = $priorNativePreference
+            }
+        }
+
+        $manifest.commandExitCode = if ($null -ne (Get-Variable -Name LASTEXITCODE -ErrorAction SilentlyContinue)) { $LASTEXITCODE } else { 0 }
+        $autoMetrics = Get-AutoExtractedMetrics -CommandOutput $commandOutput
+        $manifest.autoExtractedMetrics = $autoMetrics
+        $manifest.thresholdEvaluation = Get-ThresholdEvaluation -SelectedProfile $selectedProfile -Metrics $autoMetrics
         Set-Content -Path (Join-Path $runDirectory "command-output.txt") -Value $commandOutput -Encoding ascii
     }
     finally {
@@ -142,7 +270,9 @@ New-EvidenceSummary \
     -ExecutedCommand $executedCommand \
     -WasDryRun ([bool]$DryRun) \
     -TenantCount $TenantCount \
-    -DurationSeconds $DurationSeconds
+    -DurationSeconds $DurationSeconds \
+    -AutoMetrics $manifest.autoExtractedMetrics \
+    -ThresholdEvaluation ([array]$manifest.thresholdEvaluation)
 
 Write-Host "Created Phase 4 evidence bundle: $runDirectory"
 Write-Host "Manifest: $manifestPath"
