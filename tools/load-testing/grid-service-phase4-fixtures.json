@@ -59,6 +59,24 @@
             "PGPASSWORD": "{{DatabasePassword}}",
             "PGOPTIONS": "-c gridseed.model_id=phase4_profile_b"
           }
+        },
+        {
+          "name": "seed-close-cycle-and-ai-governance",
+          "executable": "psql",
+          "arguments": [
+            "-h",
+            "{{DatabaseHost}}",
+            "-U",
+            "{{DatabaseUser}}",
+            "-d",
+            "{{DatabaseName}}",
+            "-f",
+            "services/grid-service/sql/seed/phase6_close_cycle_and_ai_seed.sql"
+          ],
+          "environment": {
+            "PGPASSWORD": "{{DatabasePassword}}",
+            "PGOPTIONS": "-c phase4.seed_prefix=phase4"
+          }
         }
       ]
     },

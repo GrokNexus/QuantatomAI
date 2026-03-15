@@ -67,6 +67,45 @@ func TestRun_Phase2TenantControlPlane(t *testing.T) {
 	assertValidationQueriesPass(t, ctx, db)
 }
 
+func TestRun_Phase6ConsolidationAndPhase7AIGovernance(t *testing.T) {
+	testDatabaseURL := os.Getenv("DATABASE_URL")
+	if testDatabaseURL == "" {
+		t.Skip("DATABASE_URL is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	adminDB, targetDatabaseURL, databaseName := createEphemeralDatabase(t, ctx, testDatabaseURL)
+	defer dropEphemeralDatabase(t, adminDB, databaseName)
+
+	db, err := sql.Open("postgres", targetDatabaseURL)
+	require.NoError(t, err)
+	defer db.Close()
+
+	require.NoError(t, db.PingContext(ctx))
+	require.NoError(t, Run(ctx, db))
+
+	tenantID := insertTenantFixture(t, ctx, db)
+	userID := insertUserFixture(t, ctx, db, tenantID)
+	appID := insertAppFixture(t, ctx, db, tenantID, userID)
+
+	dimensionID := insertDimensionFixture(t, ctx, db, appID)
+	memberA := insertDimensionMemberFixtureReturningID(t, ctx, db, dimensionID, "Revenue", "global.revenue")
+	memberB := insertDimensionMemberFixtureReturningID(t, ctx, db, dimensionID, "COGS", "global.cogs")
+
+	closeID := insertCloseCalendarFixture(t, ctx, db, tenantID, appID, userID)
+	insertIntercompanyOwnershipFixture(t, ctx, db, tenantID, appID, memberA, memberB)
+	insertJournalEntryFixture(t, ctx, db, tenantID, appID, closeID, userID)
+	insertFXPolicyFixture(t, ctx, db, tenantID, appID, memberA)
+	insertEliminationRuleFixture(t, ctx, db, tenantID, appID, memberA, memberB)
+	insertDisclosureMappingFixture(t, ctx, db, tenantID, appID, memberA)
+	insertAIInferenceLogFixture(t, ctx, db, tenantID, appID, userID)
+
+	assertPhase6ValidationQueriesPass(t, ctx, db)
+	assertPhase7ValidationQueriesPass(t, ctx, db)
+}
+
 func createEphemeralDatabase(t *testing.T, ctx context.Context, databaseURL string) (*sql.DB, string, string) {
 	t.Helper()
 
@@ -218,6 +257,170 @@ func insertDimensionMemberFixture(t *testing.T, ctx context.Context, db *sql.DB,
 	require.NoError(t, err)
 }
 
+func insertDimensionMemberFixtureReturningID(t *testing.T, ctx context.Context, db *sql.DB, dimensionID, name, path string) string {
+	t.Helper()
+
+	var id string
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO dimension_members (dimension_id, name, path)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`, dimensionID, name, path).Scan(&id)
+	require.NoError(t, err)
+	return id
+}
+
+func insertCloseCalendarFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, ownerUserID string) string {
+	t.Helper()
+
+	var id string
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO entity_close_calendar (
+			tenant_id,
+			app_id,
+			period_code,
+			period_start_date,
+			period_end_date,
+			close_deadline,
+			status,
+			owner_user_id
+		) VALUES (
+			$1,
+			$2,
+			'FY2026M03',
+			DATE '2026-03-01',
+			DATE '2026-03-31',
+			NOW() + INTERVAL '1 day',
+			'in_review',
+			$3
+		)
+		RETURNING id
+	`, tenantID, appID, ownerUserID).Scan(&id)
+	require.NoError(t, err)
+	return id
+}
+
+func insertIntercompanyOwnershipFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, parentMemberID, childMemberID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO intercompany_ownership (
+			tenant_id,
+			app_id,
+			parent_entity_member_id,
+			child_entity_member_id,
+			ownership_pct,
+			effective_from
+		) VALUES ($1, $2, $3, $4, 1.0, DATE '2026-01-01')
+	`, tenantID, appID, parentMemberID, childMemberID)
+	require.NoError(t, err)
+}
+
+func insertJournalEntryFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, closeID, userID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO journal_entries (
+			tenant_id,
+			app_id,
+			close_calendar_id,
+			journal_type,
+			status,
+			total_amount,
+			currency_code,
+			created_by,
+			approved_by,
+			posted_at
+		) VALUES ($1, $2, $3, 'adjustment', 'approved', 5000.00, 'USD', $4, $4, NOW())
+	`, tenantID, appID, closeID, userID)
+	require.NoError(t, err)
+}
+
+func insertFXPolicyFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, accountMemberID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO fx_translation_policies (
+			tenant_id,
+			app_id,
+			account_member_id,
+			policy_name,
+			translation_method,
+			rate_source
+		) VALUES ($1, $2, $3, 'phase6-fx-policy', 'closing_rate', 'enterprise_rate_table')
+	`, tenantID, appID, accountMemberID)
+	require.NoError(t, err)
+}
+
+func insertEliminationRuleFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, debitMemberID, creditMemberID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO elimination_rules (
+			tenant_id,
+			app_id,
+			rule_name,
+			debit_account_member_id,
+			credit_account_member_id,
+			status
+		) VALUES ($1, $2, 'phase6-elimination-rule', $3, $4, 'active')
+	`, tenantID, appID, debitMemberID, creditMemberID)
+	require.NoError(t, err)
+}
+
+func insertDisclosureMappingFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, accountMemberID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO disclosure_mappings (
+			tenant_id,
+			app_id,
+			disclosure_code,
+			disclosure_name,
+			account_member_id,
+			statement_type
+		) VALUES ($1, $2, 'PHASE6-IS-001', 'Phase6 Revenue Disclosure', $3, 'income-statement')
+	`, tenantID, appID, accountMemberID)
+	require.NoError(t, err)
+}
+
+func insertAIInferenceLogFixture(t *testing.T, ctx context.Context, db *sql.DB, tenantID, appID, userID string) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO ai_inference_log (
+			tenant_id,
+			app_id,
+			request_type,
+			model_provider,
+			model_id,
+			confidence_score,
+			request_payload,
+			response_payload,
+			grounding_atoms,
+			human_override,
+			override_reason,
+			inference_latency_ms,
+			created_by
+		) VALUES (
+			$1,
+			$2,
+			'variance-narrative',
+			'test-provider',
+			'test-model',
+			0.93,
+			'{"test": true}'::jsonb,
+			'{"narrative": "ok"}'::jsonb,
+			'[]'::jsonb,
+			FALSE,
+			NULL,
+			30,
+			$3
+		)
+	`, tenantID, appID, userID)
+	require.NoError(t, err)
+}
+
 func insertSecurityPolicyFixture(t *testing.T, ctx context.Context, db *sql.DB, appID, userID string) {
 	t.Helper()
 
@@ -338,6 +541,41 @@ func assertValidationQueriesPass(t *testing.T, ctx context.Context, db *sql.DB) 
 		`SELECT COUNT(*) FROM branches b JOIN apps a ON a.id = b.app_id WHERE b.tenant_id IS DISTINCT FROM a.tenant_id`,
 		`SELECT COUNT(*) FROM tenant_ai_policies WHERE retrieval_scope <> 'tenant-only' OR allow_cross_tenant_learning = TRUE`,
 		`SELECT COUNT(*) FROM app_partitions ap LEFT JOIN tenant_regions tr ON tr.tenant_id = ap.tenant_id AND tr.region_code = ap.write_region WHERE tr.tenant_id IS NULL`,
+	}
+
+	for _, check := range checks {
+		var count int
+		err := db.QueryRowContext(ctx, check).Scan(&count)
+		require.NoError(t, err)
+		require.Zero(t, count, check)
+	}
+}
+
+func assertPhase6ValidationQueriesPass(t *testing.T, ctx context.Context, db *sql.DB) {
+	t.Helper()
+
+	checks := []string{
+		`SELECT COUNT(*) FROM entity_close_calendar ecc JOIN apps a ON a.id = ecc.app_id WHERE ecc.tenant_id IS DISTINCT FROM a.tenant_id`,
+		`SELECT COUNT(*) FROM journal_entries je JOIN apps a ON a.id = je.app_id WHERE je.tenant_id IS DISTINCT FROM a.tenant_id`,
+		`SELECT COUNT(*) FROM intercompany_ownership WHERE ownership_pct < 0 OR ownership_pct > 1`,
+		`SELECT COUNT(*) FROM disclosure_mappings WHERE statement_type NOT IN ('income-statement', 'balance-sheet', 'cash-flow', 'esg')`,
+	}
+
+	for _, check := range checks {
+		var count int
+		err := db.QueryRowContext(ctx, check).Scan(&count)
+		require.NoError(t, err)
+		require.Zero(t, count, check)
+	}
+}
+
+func assertPhase7ValidationQueriesPass(t *testing.T, ctx context.Context, db *sql.DB) {
+	t.Helper()
+
+	checks := []string{
+		`SELECT COUNT(*) FROM ai_inference_log ail JOIN apps a ON a.id = ail.app_id WHERE ail.app_id IS NOT NULL AND ail.tenant_id IS DISTINCT FROM a.tenant_id`,
+		`SELECT COUNT(*) FROM ai_inference_log WHERE confidence_score < 0 OR confidence_score > 1`,
+		`SELECT COUNT(*) FROM ai_inference_log WHERE human_override = TRUE AND (override_reason IS NULL OR length(trim(override_reason)) = 0)`,
 	}
 
 	for _, check := range checks {

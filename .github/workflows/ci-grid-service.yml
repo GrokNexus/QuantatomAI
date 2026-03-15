@@ -165,7 +165,14 @@ jobs:
       - name: Validate Phase 4 Fixture Smoke Checks
         env:
           PGPASSWORD: quantatomai
-        run: psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase4_fixture_smoke_checks.sql
+        run: |
+          if [[ "${{ matrix.profile }}" == "B" ]]; then
+            psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase4_planning_workload_smoke_checks.sql
+            psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase6_consolidation_domain_checks.sql
+            psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase7_ai_inference_governance_checks.sql
+          else
+            psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase4_fixture_smoke_checks.sql
+          fi
 
       - name: Generate Phase 4 Evidence Bundle
         working-directory: .

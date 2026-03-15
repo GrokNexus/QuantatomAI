@@ -97,6 +97,7 @@ func main() {
 		currResolver,
 	)
 	metadataHandler := handlers.NewMetadataHandler(planr.MetadataResolver())
+	metadataGraphHandler := handlers.NewMetadataGraphHandler(db)
 
 	// 7. HTTP Routing
 	router := gin.Default()
@@ -138,6 +139,7 @@ func main() {
 
 	// Metadata discovery
 	metadataHandler.RegisterRoutes(router)
+	metadataGraphHandler.RegisterRoutes(router)
 
 	// Core API
 	router.POST("/grid/query", gridHandler.HandleGridQuery)

@@ -41,16 +41,23 @@ func (h *BranchHandler) RegisterRoutes(r *gin.Engine) {
 // ListBranches returns all available sandboxes for a specific App.
 func (h *BranchHandler) ListBranches(c *gin.Context) {
 	appID := c.Param("appId")
+	tenantID := c.GetHeader(TenantHeaderName)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing X-Tenant-ID header"})
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, name, base_branch_id, created_at 
-		FROM branches 
-		WHERE app_id = $1
+		SELECT b.id, b.name, b.base_branch_id, b.created_at
+		FROM branches b
+		JOIN apps a ON a.id = b.app_id
+		WHERE b.app_id = $1
+		  AND a.tenant_id = $2::uuid
 		ORDER BY created_at DESC
-	`, appID)
+	`, appID, tenantID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list branches"})
@@ -79,6 +86,11 @@ func (h *BranchHandler) ListBranches(c *gin.Context) {
 // CreateBranch establishes a new isolated sandbox based off an existing branch (usually 'main').
 func (h *BranchHandler) CreateBranch(c *gin.Context) {
 	appID := c.Param("appId")
+	tenantID := c.GetHeader(TenantHeaderName)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing X-Tenant-ID header"})
+		return
+	}
 
 	var req struct {
 		Name         string `json:"name" binding:"required"`
@@ -95,10 +107,13 @@ func (h *BranchHandler) CreateBranch(c *gin.Context) {
 
 	var newBranchID string
 	err := h.db.QueryRowContext(ctx, `
-		INSERT INTO branches (app_id, name, base_branch_id)
-		VALUES ($1, $2, $3)
+		INSERT INTO branches (app_id, tenant_id, name, base_branch_id)
+		SELECT a.id, a.tenant_id, $2, $3
+		FROM apps a
+		WHERE a.id = $1
+		  AND a.tenant_id = $4::uuid
 		RETURNING id
-	`, appID, req.Name, req.BaseBranchID).Scan(&newBranchID)
+	`, appID, req.Name, req.BaseBranchID, tenantID).Scan(&newBranchID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create branch sandbox"})

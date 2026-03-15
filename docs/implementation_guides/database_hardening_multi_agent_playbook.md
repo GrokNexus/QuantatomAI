@@ -150,6 +150,15 @@ Use this status language when updating the file:
 - Extended `cortex-service` with tenant-aware `/api/v1/vector/similarity`, optional live LLM synthesis path in `rag.py` (via `litellm` + `CORTEX_LLM_API_KEY`), and model/tenant metadata in narrative responses.
 - Began Phase 8 MVP implementation with a new `compute/heliocalc` Rust crate: AtomScript parser + interpreter for `SUM(...)` with `WHERE` predicates and 10 passing unit tests (`cargo test`).
 
+### 2026-03-15 (full production hardening pass after `ff28b13`)
+- Replaced temporary metadata-graph scaffolding with runtime `grid-service` integration under `src/`: added tenant guard middleware (`X-Tenant-ID`), Postgres-backed `GET /api/v1/metadata/graph`, and branch-aware member resolution using `dimension_members` + `branches` overlay semantics.
+- Hardened branch APIs for tenant safety by requiring `X-Tenant-ID` and enforcing `apps.tenant_id` alignment in both branch listing and branch creation paths.
+- Added Phase 6/7 operational fixture seeding via `services/grid-service/sql/seed/phase6_close_cycle_and_ai_seed.sql` and wired it into profile B fixture orchestration.
+- Updated CI profile-aware validation logic so profile B runs `phase4_planning_workload_smoke_checks.sql` + `phase6_consolidation_domain_checks.sql` + `phase7_ai_inference_governance_checks.sql`, while C/D continue replay-focused smoke checks.
+- Extended DB-backed profile B command chain to run Phase 6 and Phase 7 validation SQL in addition to planning workload checks.
+- Added Cortex inference persistence module `services/cortex-service/src/db.py` and wired best-effort `ai_inference_log` writes for forecast, variance narrative, and vector similarity endpoints (with tenant/model/provenance payloads).
+- Added migration integration coverage for Phase 6 and 7 in `sql/schema/migrate_integration_test.go` with explicit fixture insertion and validation query assertions.
+
 ---
 
 ## Phase 1: Database Truth Baseline
