@@ -59,3 +59,45 @@ Writes cell edits.
   "status": "ok"
 }
 ```
+
+## GET /api/v1/metadata/graph
+
+Returns a tenant-scoped metadata lineage graph snapshot for a selected root member.
+
+### Required Header
+
+`X-Tenant-ID: <tenant-id>`
+
+### Query Parameters
+
+- `appId` (required)
+- `dimension` (required)
+- `rootMember` (required)
+
+### Response
+
+```json
+{
+  "tenantId": "tenant-ultra",
+  "appId": "app-1",
+  "dimension": "region",
+  "rootMember": "Global",
+  "nodes": [
+    {"id": "global", "dimension": "region", "name": "Global", "path": "Global"},
+    {"id": "global_northamerica", "dimension": "region", "name": "NorthAmerica", "path": "Global.NorthAmerica"}
+  ],
+  "edges": [
+    {"fromId": "global", "toId": "global_northamerica", "type": "parent-child"}
+  ],
+  "ancestors": [],
+  "descendants": ["NorthAmerica", "EMEA"]
+}
+```
+
+## POST /api/v1/fluxion/forecast
+
+Tenant-governed AI endpoint. Requires `X-Tenant-ID`. Returns `403` unless the tenant has explicitly opted in.
+
+## POST /api/v1/fluxion/ask
+
+Tenant-governed AI endpoint. Requires `X-Tenant-ID`. Returns `403` unless the tenant has explicitly opted in.

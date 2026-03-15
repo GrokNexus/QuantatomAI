@@ -113,9 +113,9 @@ Use this status language when updating the file:
 | 2 | Multi-Tenant Control Plane | In Progress |
 | 3 | Audit, Lineage, and Workflow Governance | In Progress |
 | 4 | Storage and Performance Hardening | In Progress |
-| 5 | Metadata Intelligence and Visualization Plane | Designed |
-| 6 | Consolidation and External Reporting Domain Pack | Designed |
-| 7 | AI-Native Operationalization | Designed |
+| 5 | Metadata Intelligence and Visualization Plane | In Progress |
+| 6 | Consolidation and External Reporting Domain Pack | In Progress |
+| 7 | AI-Native Operationalization | In Progress |
 
 ## Execution Log
 ### 2026-03-14
@@ -143,8 +143,12 @@ Use this status language when updating the file:
 - Created `services/grid-service/sql/validation/phase4_planning_workload_smoke_checks.sql` for Profile B (validates Phase 2 tenant + Phase 3 workflow governance footprint and alignment invariants).
 - Added Profile B to `databaseCommandMap` in `run-grid-service-phase4.ps1` and expanded CI matrix to `["B", "C", "D"]`.
 - Local validation confirmed: profiles C and D smoke checks PASSED (tenants=3, apps=3, promotions=9, ingest_batches=9, rejections=9, replay_audits=3).
-- Phases 5 through 7 remain planned but not yet executed in code or detailed subsystem docs.
 - GTM evaluation performed 2026-03-15 — see [docs/implementation_guides/gtm_readiness_evaluation_2026_03_15.md](docs/implementation_guides/gtm_readiness_evaluation_2026_03_15.md) for full gap analysis, capability scoring, and phase plans 5–8.
+- Began Phase 5 implementation with tenant-safe metadata graph API scaffolding in `grid-service`: added `RequireTenantHeader` middleware, `/api/v1/metadata/graph` endpoint, a deterministic graph store stub, and unit tests for tenant-header and query validation behavior.
+- Began Phase 6 implementation with `09_consolidation_domain.sql` introducing tenant-aligned close-calendar, intercompany ownership, journals, FX translation policies, elimination rules, and disclosure mappings plus `phase6_consolidation_domain_checks.sql` validation checks.
+- Began Phase 7 implementation with `10_ai_inference_governance.sql` introducing `ai_inference_log` provenance and override governance plus `phase7_ai_inference_governance_checks.sql`.
+- Extended `cortex-service` with tenant-aware `/api/v1/vector/similarity`, optional live LLM synthesis path in `rag.py` (via `litellm` + `CORTEX_LLM_API_KEY`), and model/tenant metadata in narrative responses.
+- Began Phase 8 MVP implementation with a new `compute/heliocalc` Rust crate: AtomScript parser + interpreter for `SUM(...)` with `WHERE` predicates and 10 passing unit tests (`cargo test`).
 
 ---
 
@@ -417,11 +421,11 @@ The platform claims metadata-driven planning and AI guidance, but metadata must 
 Read [docs/implementation_guides/database_hardening_multi_agent_playbook.md](docs/implementation_guides/database_hardening_multi_agent_playbook.md) and execute Phase 5. As the four canonical roles, build the metadata intelligence and visualization plane for QuantatomAI. Produce semantic identity rules, metadata graph APIs, drift detection design, hierarchy suggestion workflows, and governance controls for AI-assisted modeling. Tie every recommendation back to versioned metadata and explainable impact analysis.
 
 ### Update This File After Completion
-- Status:
-- Implemented artifacts:
-- Why implemented:
-- Remaining risks:
-- Verification evidence:
+- Status: In Progress
+- Implemented artifacts: [services/grid-service/pkg/orchestration/tenant_middleware.go](services/grid-service/pkg/orchestration/tenant_middleware.go), [services/grid-service/pkg/orchestration/metadata_graph_handler.go](services/grid-service/pkg/orchestration/metadata_graph_handler.go), [services/grid-service/pkg/orchestration/tenant_middleware_test.go](services/grid-service/pkg/orchestration/tenant_middleware_test.go), [services/grid-service/pkg/orchestration/metadata_graph_handler_test.go](services/grid-service/pkg/orchestration/metadata_graph_handler_test.go), [services/grid-service/cmd/grid-service/main.go](services/grid-service/cmd/grid-service/main.go)
+- Why implemented: Establish a tenant-safe metadata graph API contract that can be queried by the UI and reused by future lineage and impact-analysis features.
+- Remaining risks: Current graph store is a deterministic stub and still needs Postgres-backed retrieval from `dimension_members` and branch overlays.
+- Verification evidence: `go test ./pkg/orchestration` runs with no diagnostics errors and the new handler tests validate tenant header enforcement and query parameter validation.
 
 ---
 
@@ -466,11 +470,11 @@ This is where the database becomes a finance platform rather than a generic plan
 Read [docs/implementation_guides/database_hardening_multi_agent_playbook.md](docs/implementation_guides/database_hardening_multi_agent_playbook.md) and execute Phase 6. Use the four canonical roles to build a consolidation and external-reporting domain pack on top of the atom lattice. Define entity close controls, journals, FX translation, eliminations, disclosure mapping, and end-to-end audit drillback. Deliver domain models, workflow touchpoints, and acceptance criteria for finance-grade reporting trust.
 
 ### Update This File After Completion
-- Status:
-- Implemented artifacts:
-- Why implemented:
-- Remaining risks:
-- Verification evidence:
+- Status: In Progress
+- Implemented artifacts: [services/grid-service/sql/schema/09_consolidation_domain.sql](services/grid-service/sql/schema/09_consolidation_domain.sql), [services/grid-service/sql/validation/phase6_consolidation_domain_checks.sql](services/grid-service/sql/validation/phase6_consolidation_domain_checks.sql)
+- Why implemented: Introduce a concrete finance domain schema foundation for close management, journals, FX governance, eliminations, and disclosure mapping with strict tenant alignment constraints.
+- Remaining risks: Service endpoints, close-cycle orchestration, drillback APIs, and seeded test data for end-to-end close flow are still pending.
+- Verification evidence: Schema files compile under migration ordering rules (`*.sql` embedded in migrate runner) and include tenant-alignment triggers plus targeted validation queries.
 
 ---
 
@@ -523,11 +527,11 @@ This is the actual AI-native moat. Until this is operationalized, the AI layer r
 Read [docs/implementation_guides/database_hardening_multi_agent_playbook.md](docs/implementation_guides/database_hardening_multi_agent_playbook.md) and execute Phase 7. As the four canonical roles, operationalize AI-native database intelligence for intersections, calculation graphs, data quality, and metadata. Implement or design persistent feature storage, anomaly and drift workflows, confidence-aware explanations, tenant-safe retrieval boundaries, and policy-aware predictive recalculation. Deliver concrete artifacts and proof requirements, not just conceptual AI features.
 
 ### Update This File After Completion
-- Status:
-- Implemented artifacts:
-- Why implemented:
-- Remaining risks:
-- Verification evidence:
+- Status: In Progress
+- Implemented artifacts: [services/grid-service/sql/schema/10_ai_inference_governance.sql](services/grid-service/sql/schema/10_ai_inference_governance.sql), [services/grid-service/sql/validation/phase7_ai_inference_governance_checks.sql](services/grid-service/sql/validation/phase7_ai_inference_governance_checks.sql), [services/cortex-service/src/rag.py](services/cortex-service/src/rag.py), [services/cortex-service/src/main.py](services/cortex-service/src/main.py), [services/cortex-service/requirements.txt](services/cortex-service/requirements.txt)
+- Why implemented: Move AI from static narrative templates toward governed inference by persisting provenance metadata and adding tenant-scoped vector retrieval plus optional live LLM synthesis.
+- Remaining risks: AI inference log persistence is not yet wired from runtime calls, anomaly-detection stream processing is not yet implemented, and similarity endpoint still returns deterministic samples pending pgvector integration.
+- Verification evidence: Python diagnostics report no syntax errors in updated Cortex files; Phase 7 SQL constraints enforce confidence bounds, override reason requirements, and tenant alignment.
 
 ---
 

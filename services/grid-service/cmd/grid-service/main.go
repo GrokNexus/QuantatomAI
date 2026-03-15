@@ -29,6 +29,7 @@ func main() {
 
 	// Phase 8.1: Fluxion AI Endpoints with strict Opt-In Governance
 	tenantStore := &orchestration.MockTenantStore{}
+	metadataGraphStore := &orchestration.MockMetadataGraphStore{}
 
 	// Stub handlers that will eventually route to the Python Inference Engine (Phase 8.3)
 	aiStubHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +38,7 @@ func main() {
 
 	mux.HandleFunc("/api/v1/fluxion/forecast", orchestration.FluxionMiddleware(tenantStore, aiStubHandler))
 	mux.HandleFunc("/api/v1/fluxion/ask", orchestration.FluxionMiddleware(tenantStore, aiStubHandler))
+	mux.HandleFunc("/api/v1/metadata/graph", orchestration.RequireTenantHeader(orchestration.MetadataGraphHandler(metadataGraphStore)))
 
 	server := &http.Server{
 		Addr:              ":8080",

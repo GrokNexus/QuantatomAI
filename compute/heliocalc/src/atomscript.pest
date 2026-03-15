@@ -1,0 +1,13 @@
+// Phase 8 grammar sketch (future pest integration).
+formula = { function_call ~ (WHITESPACE+ ~ where_clause)? }
+function_call = { identifier ~ "(" ~ arguments? ~ ")" }
+arguments = { argument ~ ("," ~ argument)* }
+argument = { reference | number | string }
+where_clause = { "WHERE" ~ WHITESPACE+ ~ predicate }
+predicate = { reference ~ WHITESPACE* ~ comparator ~ WHITESPACE* ~ (string | number | reference) }
+reference = { "[" ~ identifier ~ "]" }
+comparator = { "=" | "!=" | ">" | ">=" | "<" | "<=" }
+identifier = @{ (ASCII_ALPHANUMERIC | "_" | "-")+ }
+number = @{ "-"? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+WHITESPACE = _{ " " | "\t" }
