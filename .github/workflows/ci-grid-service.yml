@@ -96,6 +96,26 @@ jobs:
           DATABASE_URL: postgres://quantatomai:quantatomai@localhost:55432/quantatomai?sslmode=disable
         run: go test -timeout 180s -run TestRun_Phase2TenantControlPlane -v ./sql/schema
 
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dry Run Phase 4 Fixture Profile C
+        working-directory: .
+        run: pwsh -NoProfile -File tools/load-testing/prepare-grid-service-phase4-fixtures.ps1 -Profile C -DryRun
+
+      - name: Apply Phase 4 Fixture Profile C
+        working-directory: .
+        env:
+          PGPASSWORD: quantatomai
+        run: pwsh -NoProfile -File tools/load-testing/prepare-grid-service-phase4-fixtures.ps1 -Profile C
+
+      - name: Validate Phase 4 Fixture Smoke Checks
+        env:
+          PGPASSWORD: quantatomai
+        run: psql -h localhost -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f sql/validation/phase4_fixture_smoke_checks.sql
+
       - name: Show Container Logs on Failure
         if: failure()
         run: docker compose logs --no-color

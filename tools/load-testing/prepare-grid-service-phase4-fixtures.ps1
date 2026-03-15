@@ -71,6 +71,12 @@ function Invoke-StructuredFixtureStep {
         return
     }
 
+    $canExecuteDirectly = $null -ne (Get-Command -Name $executable -ErrorAction SilentlyContinue)
+    $useDockerPsqlFallback = (-not $canExecuteDirectly) -and ($executable -eq "psql")
+    if (-not $canExecuteDirectly -and -not $useDockerPsqlFallback) {
+        throw "Fixture step '$($Step.name)' requires executable '$executable', but it is not available in PATH"
+    }
+
     $priorEnvironment = @{}
     foreach ($environmentVariable in $environmentVariables.GetEnumerator()) {
         $priorEnvironment[$environmentVariable.Key] = [Environment]::GetEnvironmentVariable($environmentVariable.Key, 'Process')
@@ -78,7 +84,50 @@ function Invoke-StructuredFixtureStep {
     }
 
     try {
-        & $executable @arguments
+        if ($useDockerPsqlFallback) {
+            Write-Host "Executable '$executable' not found. Falling back to docker exec against gridservice-postgres."
+
+            $resolvedArguments = @($arguments)
+            for ($index = 0; $index -lt $resolvedArguments.Count; $index++) {
+                if ($resolvedArguments[$index] -eq "-f" -and $index + 1 -lt $resolvedArguments.Count) {
+                    $hostScriptPath = $resolvedArguments[$index + 1]
+                    $absoluteHostScriptPath = if ([System.IO.Path]::IsPathRooted($hostScriptPath)) {
+                        $hostScriptPath
+                    }
+                    else {
+                        Join-Path $workspaceRoot $hostScriptPath
+                    }
+
+                    if (-not (Test-Path $absoluteHostScriptPath)) {
+                        throw "Fixture SQL file '$hostScriptPath' was not found at '$absoluteHostScriptPath'"
+                    }
+
+                    $containerScriptPath = "/tmp/{0}" -f ([System.IO.Path]::GetFileName($absoluteHostScriptPath))
+                    & docker cp $absoluteHostScriptPath ("gridservice-postgres:{0}" -f $containerScriptPath)
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Failed to copy fixture SQL file '$absoluteHostScriptPath' into gridservice-postgres"
+                    }
+
+                    $resolvedArguments[$index + 1] = $containerScriptPath
+                }
+            }
+
+            $dockerArguments = @("exec", "-i")
+            foreach ($environmentVariable in $environmentVariables.GetEnumerator()) {
+                $dockerArguments += "-e"
+                $dockerArguments += ("{0}={1}" -f $environmentVariable.Key, $environmentVariable.Value)
+            }
+
+            $dockerArguments += "gridservice-postgres"
+            $dockerArguments += "psql"
+            $dockerArguments += $resolvedArguments
+
+            & docker @dockerArguments
+        }
+        else {
+            & $executable @arguments
+        }
+
         if ($LASTEXITCODE -ne 0) {
             throw "Fixture step '$($Step.name)' failed with code $LASTEXITCODE"
         }

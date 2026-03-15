@@ -14,10 +14,15 @@
           "name": "migrate-only",
           "executable": "go",
           "arguments": [
+            "-C",
+            "services/grid-service",
             "run",
-            "./services/grid-service/src",
+            "./src",
             "-migrate-only"
-          ]
+          ],
+          "environment": {
+            "DATABASE_URL": "postgres://{{DatabaseUser}}:{{DatabasePassword}}@{{DatabaseHost}}:55432/{{DatabaseName}}?sslmode=disable"
+          }
         },
         {
           "name": "seed-tenant-governance",
@@ -66,10 +71,15 @@
           "name": "migrate-only",
           "executable": "go",
           "arguments": [
+            "-C",
+            "services/grid-service",
             "run",
-            "./services/grid-service/src",
+            "./src",
             "-migrate-only"
-          ]
+          ],
+          "environment": {
+            "DATABASE_URL": "postgres://{{DatabaseUser}}:{{DatabasePassword}}@{{DatabaseHost}}:55432/{{DatabaseName}}?sslmode=disable"
+          }
         },
         {
           "name": "seed-tenant-governance",
@@ -136,10 +146,15 @@
           "name": "migrate-only",
           "executable": "go",
           "arguments": [
+            "-C",
+            "services/grid-service",
             "run",
-            "./services/grid-service/src",
+            "./src",
             "-migrate-only"
-          ]
+          ],
+          "environment": {
+            "DATABASE_URL": "postgres://{{DatabaseUser}}:{{DatabasePassword}}@{{DatabaseHost}}:55432/{{DatabaseName}}?sslmode=disable"
+          }
         },
         {
           "name": "seed-tenant-governance",
