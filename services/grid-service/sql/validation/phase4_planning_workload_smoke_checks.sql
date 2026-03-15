@@ -61,7 +61,7 @@ BEGIN
     FROM workflow_nodes wn
     JOIN apps a ON a.id = wn.app_id
     WHERE a.name LIKE 'phase4-planning-%'
-      AND wn.status IN ('approved', 'locked');
+            AND wn.state IN ('approved', 'published');
 
     SELECT COUNT(*) INTO promotion_count
     FROM metadata_promotion_requests mpr
