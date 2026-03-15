@@ -130,6 +130,22 @@ Use this status language when updating the file:
 - Expanded `grid-service` fixture preparation from migrate-only and compat seeding into tenant-aware governance fixtures plus replay-and-recovery seed scripts aligned to the real Phase 2 and Phase 3 schema.
 - Phases 5 through 7 remain planned but not yet executed in code or detailed subsystem docs.
 
+### 2026-03-15 (commits 85c2f3b → 3b63244 → 380ea79)
+- Hardened Phase 4 fixture orchestration: fixed migrate-only root-relative path (`go -C services/grid-service`), added DATABASE_URL env token to all migrate steps in `grid-service-phase4-fixtures.json`.
+- Added docker psql fallback with auto `docker cp` for Windows environments where `psql` is not natively installed.
+- Created `services/grid-service/sql/validation/phase4_fixture_smoke_checks.sql` with alignment invariant selects and minimum footprint enforcement for profiles C and D.
+- Refactored CI workflow: separated `integration-docker` job from new `phase4-fixture-smoke` matrix job; matrix covers profiles C and D (B added 2026-03-15 session end).
+- Extended `run-phase4-profile.ps1` with `Get-AutoExtractedMetrics` (ns/op parser, tenant fairness ratio, replay_invalid_rows) and `Get-ThresholdEvaluation` producing pass/fail/not_evaluated per threshold field in the evidence bundle.
+- Added `-DatabaseBacked` switch to `run-grid-service-phase4.ps1` wiring profiles C and D to docker exec psql validation commands; added `Get-LastExitCodeOrZero` for strict-mode safety.
+- Fixed `PSNativeCommandUseErrorActionPreference` false-failure from docker NOTICE stderr; wrapped command capture with pre/post toggle.
+- Added CI steps to generate Phase 4 evidence bundle (`run-grid-service-phase4.ps1 -DatabaseBacked`) and upload `run-manifest.json` + `evidence-summary.md` as GitHub Actions artifacts per matrix profile and SHA (`phase4-evidence-B-<sha>`, `phase4-evidence-C-<sha>`, `phase4-evidence-D-<sha>`).
+- Added `tools/load-testing/results/.gitignore` to prevent timestamped run artifacts from entering git.
+- Created `services/grid-service/sql/validation/phase4_planning_workload_smoke_checks.sql` for Profile B (validates Phase 2 tenant + Phase 3 workflow governance footprint and alignment invariants).
+- Added Profile B to `databaseCommandMap` in `run-grid-service-phase4.ps1` and expanded CI matrix to `["B", "C", "D"]`.
+- Local validation confirmed: profiles C and D smoke checks PASSED (tenants=3, apps=3, promotions=9, ingest_batches=9, rejections=9, replay_audits=3).
+- Phases 5 through 7 remain planned but not yet executed in code or detailed subsystem docs.
+- GTM evaluation performed 2026-03-15 — see [docs/implementation_guides/gtm_readiness_evaluation_2026_03_15.md](docs/implementation_guides/gtm_readiness_evaluation_2026_03_15.md) for full gap analysis, capability scoring, and phase plans 5–8.
+
 ---
 
 ## Phase 1: Database Truth Baseline

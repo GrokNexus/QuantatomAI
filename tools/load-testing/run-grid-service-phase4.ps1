@@ -38,6 +38,7 @@ $commandMap = @{
 }
 
 $databaseCommandMap = @{
+    "B" = "docker cp services/grid-service/sql/validation/phase4_planning_workload_smoke_checks.sql gridservice-postgres:/tmp/phase4_planning_workload_smoke_checks.sql; docker exec -i gridservice-postgres psql -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f /tmp/phase4_planning_workload_smoke_checks.sql"
     "C" = "docker cp services/grid-service/sql/validation/phase4_fixture_smoke_checks.sql gridservice-postgres:/tmp/phase4_fixture_smoke_checks.sql; docker exec -i gridservice-postgres psql -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f /tmp/phase4_fixture_smoke_checks.sql"
     "D" = "docker cp services/grid-service/sql/validation/phase4_fixture_smoke_checks.sql gridservice-postgres:/tmp/phase4_fixture_smoke_checks.sql; docker exec -i gridservice-postgres psql -U quantatomai -d quantatomai -v ON_ERROR_STOP=1 -f /tmp/phase4_fixture_smoke_checks.sql"
 }

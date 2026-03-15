@@ -110,7 +110,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: ["C", "D"]
+          profile: ["B", "C", "D"]
     defaults:
       run:
         working-directory: ./services/grid-service
