@@ -127,7 +127,6 @@ func (set *LWWElementSet) Merge(event *CRDTEvent) bool {
 // It sits between the WebSockets/gRPC streams and the Kafka Redpanda Backbone.
 type Hub struct {
 	crdts map[string]*LWWElementSet // Keyed by Grid ID
-	mu    sync.RWMutex
 }
 
 func NewHub() *Hub {

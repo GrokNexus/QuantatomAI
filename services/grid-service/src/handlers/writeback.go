@@ -34,17 +34,17 @@ func HandleWriteback(c *gin.Context) {
 		return
 	}
 
+	mode := "bottom_up"
 	if req.Spread != nil {
+		mode = "top_down"
 		// Red Team: Macro-Transaction Logging
 		// Instead of logging 100k leaf node mutations, we log the single INTENT.
 		// e.g. logger.LogMacroTransaction("User X spread $1B based on Prior Year")
-
 		// Emits a SINGLE event to Redpanda, Engine resolves the leaf mathematics.
-	} else {
-		// Handle explicit Bottom-Up CellEdits (Sets IsLocked = true)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
+		"mode":   mode,
 	})
 }
