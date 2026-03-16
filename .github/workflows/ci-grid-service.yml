@@ -33,7 +33,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: '1.24.9'
           cache-dependency-path: services/grid-service/go.sum
 
       - name: Install Dependencies
@@ -63,7 +63,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: '1.24.9'
           cache-dependency-path: services/grid-service/go.sum
 
       - name: Build and Start Dependencies (Docker Compose)
@@ -126,7 +126,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: '1.24.9'
           cache-dependency-path: services/grid-service/go.sum
 
       - name: Build and Start Dependencies (Docker Compose)
@@ -217,7 +217,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.21'
+          go-version: '1.24.9'
           cache-dependency-path: services/grid-service/go.sum
 
       - name: Build and Start Dependencies (Docker Compose)
