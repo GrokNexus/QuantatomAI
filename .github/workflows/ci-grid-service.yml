@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.21'
           cache-dependency-path: services/grid-service/go.sum
@@ -40,7 +40,7 @@ jobs:
         run: go mod download
 
       - name: Run Linter (golangci-lint)
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           working-directory: services/grid-service
@@ -58,10 +58,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.21'
           cache-dependency-path: services/grid-service/go.sum
@@ -121,10 +121,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.21'
           cache-dependency-path: services/grid-service/go.sum
@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload Evidence Bundle
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: phase4-evidence-${{ matrix.profile }}-${{ github.sha }}
           path: tools/load-testing/results/
@@ -212,10 +212,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.21'
           cache-dependency-path: services/grid-service/go.sum
@@ -315,7 +315,7 @@ jobs:
 
       - name: Upload Profile B Evidence Bundle
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: phase4-evidence-B-greenpath-${{ github.sha }}
           path: tools/load-testing/results/phase4-b-*
