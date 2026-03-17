@@ -175,7 +175,7 @@ func (r *PostgresMetadataResolver) ResolveMembers(
 	if err != nil {
 		return nil, fmt.Errorf("ResolveMembers query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []planner.MemberInfo
 	for rows.Next() {
@@ -211,7 +211,7 @@ func (r *PostgresMetadataResolver) ResolveMeasureIDs(
 	if err != nil {
 		return nil, fmt.Errorf("ResolveMeasureIDs query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []int64
 	for rows.Next() {
@@ -247,7 +247,7 @@ func (r *PostgresMetadataResolver) ResolveScenarioIDs(
 	if err != nil {
 		return nil, fmt.Errorf("ResolveScenarioIDs query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []int64
 	for rows.Next() {
@@ -277,7 +277,7 @@ func (r *PostgresMetadataResolver) ListDimensions(ctx context.Context) ([]planne
 	if err != nil {
 		return nil, fmt.Errorf("ListDimensions query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var dims []planner.DimensionInfo
 	for rows.Next() {
@@ -310,7 +310,7 @@ func (r *PostgresMetadataResolver) ListMembers(ctx context.Context, dim string, 
 	if err != nil {
 		return nil, fmt.Errorf("ListMembers query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var nodes []planner.MemberNode
 	for rows.Next() {
@@ -372,7 +372,7 @@ func (r *PostgresMetadataResolver) BulkGetCurrencyCodes(ctx context.Context, dim
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	results := make(map[int64]string)
 	for rows.Next() {

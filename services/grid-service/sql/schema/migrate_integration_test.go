@@ -28,7 +28,7 @@ func TestRun_Phase2TenantControlPlane(t *testing.T) {
 
 	db, err := sql.Open("postgres", targetDatabaseURL)
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	require.NoError(t, db.PingContext(ctx))
 	require.NoError(t, Run(ctx, db))
@@ -81,7 +81,7 @@ func TestRun_Phase6ConsolidationAndPhase7AIGovernance(t *testing.T) {
 
 	db, err := sql.Open("postgres", targetDatabaseURL)
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	require.NoError(t, db.PingContext(ctx))
 	require.NoError(t, Run(ctx, db))

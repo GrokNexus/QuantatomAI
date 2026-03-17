@@ -63,7 +63,7 @@ func (h *BranchHandler) ListBranches(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list branches"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []Branch
 	for rows.Next() {

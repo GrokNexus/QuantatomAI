@@ -28,10 +28,10 @@ func main() {
 
 	// 1. Core Infrastructure Initialization
 	db := initDB()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rdb := initRedis()
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init postgres metadata: %v", err)
 	}
-	defer pgMeta.Close()
+	defer func() { _ = pgMeta.Close() }()
 
 	if *migrateOnly {
 		log.Println("migrations applied; exiting per migrate-only flag")

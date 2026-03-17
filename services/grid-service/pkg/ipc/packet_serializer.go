@@ -29,7 +29,7 @@ func SerializeRecord(record arrow.Record) ([]byte, func(), error) {
 
 	// 3. Write
 	if err := writer.Write(record); err != nil {
-		writer.Close()
+		_ = writer.Close()
 		bufferPool.Put(buf) // Return on error
 		return nil, nil, fmt.Errorf("failed to write record: %w", err)
 	}

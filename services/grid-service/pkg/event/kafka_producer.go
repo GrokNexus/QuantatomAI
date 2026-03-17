@@ -86,7 +86,7 @@ func (kb *KafkaBus) Subscribe(ctx context.Context, topic string) (<-chan *AtomEv
 
 	go func() {
 		defer close(out)
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 
 		for {
 			m, err := r.ReadMessage(ctx)

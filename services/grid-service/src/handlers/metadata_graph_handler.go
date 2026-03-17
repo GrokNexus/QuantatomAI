@@ -166,7 +166,7 @@ ORDER BY nlevel(dm.path), dm.path;
 	if err != nil {
 		return nil, err
 	}
-	defer dbRows.Close()
+	defer func() { _ = dbRows.Close() }()
 
 	rows := make([]metadataPathRow, 0, 32)
 	for dbRows.Next() {

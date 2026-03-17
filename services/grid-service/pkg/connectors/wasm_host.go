@@ -49,7 +49,7 @@ func (h *WasmHost) ExecuteConnector(ctx context.Context, wasmBytes []byte, paylo
 		return fmt.Errorf("WASM compilation/instantiation failed (Memory/Timeout breached?): %w", err)
 	}
 	// Guarantee the module memory is freed when we are done
-	defer mod.Close(evalCtx)
+	defer func() { _ = mod.Close(evalCtx) }()
 
 	// In a complete implementation, this is where we lookup the exported 'extract_data' function
 	// and execute it, reading the data out of the WebAssembly shared memory.
