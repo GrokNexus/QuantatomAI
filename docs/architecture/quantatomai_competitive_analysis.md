@@ -1,9 +1,13 @@
-# ⚔️ QuantatomAI Competitive Stress Test & Moat Engineering
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
+# âš”ï¸ QuantatomAI Competitive Stress Test & Moat Engineering
 
 **Target:** Beating Anaplan, Pigment, Jedox, Oracle PBCS.
 **Scope:** `quantatomai-master-schema.md` + 7-Layer Architecture.
 
-As your Chief Architect, I have subjected our master schema to a **"Null-Point Stress Test"**—simulating 100,000 concurrent writes, 50-dimension sparsity, and global dependency graphs.
+As your Chief Architect, I have subjected our master schema to a **"Null-Point Stress Test"**â€”simulating 100,000 concurrent writes, 50-dimension sparsity, and global dependency graphs.
 
 Below is the **Kill Chain**: How we break the competitors, and how we harden our own system to be unbreakable.
 
@@ -24,10 +28,10 @@ Below is the **Kill Chain**: How we break the competitors, and how we harden our
 
 I found **3 Critical Fracture Points** in our current `quantatomai-master-schema.md` under extreme load. Here is the Moat Engineering to fix them.
 
-### 💥 Fracture Point 1: The "Postgres Write Lock"
+### ðŸ’¥ Fracture Point 1: The "Postgres Write Lock"
 **The Scenario:** 5,000 regional planners submit their "Bottoms-Up" forecast at 4:59 PM on Friday.
 **The Break:** Writing 5M rows to `data_atoms` (Postgres) simultaneously will hit **Row-Level Locking (MVCC)** contention. The database will choke.
-**🛡️ The Moat Solution: Hyper-Log Write Buffer (LSM Tree)**
+**ðŸ›¡ï¸ The Moat Solution: Hyper-Log Write Buffer (LSM Tree)**
 *   **Change:** Do NOT write directly to `data_atoms`.
 *   **Architecture:**
     1.  Writes hit a **Redis Scylla-Style Memtable** (Append-Only) first.
@@ -35,20 +39,20 @@ I found **3 Critical Fracture Points** in our current `quantatomai-master-schema
     3.  A background **Log-Structured Merge (LSM)** process flushes these to Postgres in sorted batches.
     *   **Result:** Write throughput increases from ~5k ops/sec to ~500k ops/sec.
 
-### 💥 Fracture Point 2: The "Bridge Explosion" (RAB)
+### ðŸ’¥ Fracture Point 2: The "Bridge Explosion" (RAB)
 **The Scenario:** A high-level plan has 10,000 Bridge Links to granular actuals. A user changes the Top-Down target.
 **The Break:** The `aggregation_bridges` table requires a massive join to propagate the spread. Postgres joins on 10M rows are too slow for "Interactive Planning" (<200ms).
-**🛡️ The Moat Solution: Pre-Materialized Adjacency Vectors**
+**ðŸ›¡ï¸ The Moat Solution: Pre-Materialized Adjacency Vectors**
 *   **Change:** Store the "Bridge Path" not as rows, but as a **Roaring Bitmap** or **Binary Vector** in the parent Atom.
 *   **Architecture:**
     *   Parent Atom `metadata` field contains: `bridge_vector: [0x1A2B...]`.
     *   The **AtomEngine (Rust)** loads this vector and applies SIMD multiplication to propagate value to all 10,000 children in literally **4 CPU cycles**.
     *   **Result:** Allocations become instant, regardless of scale.
 
-### 💥 Fracture Point 3: The "Ghost Dependency"
+### ðŸ’¥ Fracture Point 3: The "Ghost Dependency"
 **The Scenario:** "Net Income" depends on "Tax," which depends on "Revenue." User edits Revenue.
 **The Break:** In a distributed 100-shard system, the "Tax" calculation might verify against an outdated "Revenue" value if the Eventual Consistency (Kafka) lags by 500ms.
-**🛡️ The Moat Solution: Lamport Vector Clocks (Causality)**
+**ðŸ›¡ï¸ The Moat Solution: Lamport Vector Clocks (Causality)**
 *   **Change:** Add a `causal_vector` column to `data_atoms`.
 *   **Architecture:**
     *   Every update carries a logical clock: `{nodeA: 10, nodeB: 4}`.

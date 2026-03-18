@@ -1,3 +1,7 @@
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
 # Red Team Analysis: Top-Down vs. Bottom-Up Planning in QuantatomAI
 
 **Objective:** Evaluate if the current QuantatomAI 8-Layer Architecture (Molecular Data Format + AtomEngine) robustly supports both Top-Down and Bottom-Up planning paradigms, and identify critical vulnerabilities (Red Team gaps).
@@ -19,7 +23,7 @@ Top-Down planning is when a high-level executive enters a target at an aggregate
 *   **The Mechanism:** As defined in the `GeminiQuantAnalysis.md`, the `AtomEngine` executes a **Spreading Routine**. It looks at a Reference Base (e.g., last year's actuals) and proportionally spreads the $1B target down the hierarchy.
 *   **The Engine:** The Rust core uses AVX-512 vector math to execute this proportional spread rapidly across the off-heap memory arena.
 
-### 🔴 Red Team Gaps & Vulnerabilities (Top-Down Risk)
+### ðŸ”´ Red Team Gaps & Vulnerabilities (Top-Down Risk)
 
 While mechanically possible, Top-Down planning introduces three severe systemic risks in an infinite-dimension system:
 

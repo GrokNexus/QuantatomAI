@@ -1,4 +1,8 @@
-# 🧮 QuantatomAI Calculation Engine: "AtomScript"
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
+# ðŸ§® QuantatomAI Calculation Engine: "AtomScript"
 
 You asked: *"What allows business to write formulas? What is the tech stack? What functions are available?"*
 

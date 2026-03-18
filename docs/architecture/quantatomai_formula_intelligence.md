@@ -1,6 +1,10 @@
-# 🧠 QuantatomAI Formula Intelligence & Grid Integration
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
 
-**Status:** 💎 **Diamond Specification**
+# ðŸ§  QuantatomAI Formula Intelligence & Grid Integration
+
+**Status:** ðŸ’Ž **Diamond Specification**
 **Layer:** 7.3 (Editor) <-> 5.0 (Compute Kernel)
 
 This document answers: *How does the User's Formula connect to the Iron Engine?*

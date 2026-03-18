@@ -1,4 +1,8 @@
-# 🚨 QuantatomAI Red Team Report: Critical Architectural Gaps
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
+# ðŸš¨ QuantatomAI Red Team Report: Critical Architectural Gaps
 
 You rightfully challenged my analysis. While the **Computation Engine (L5)** is "Ultra-Diamond," a true Enterprise Platform requires more than just speed.
 

@@ -1,3 +1,7 @@
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
 # QuantatomAI Database Layer Mind Map
 
 This document is the evolving mind map for the overall database layer as hardening phases are implemented.

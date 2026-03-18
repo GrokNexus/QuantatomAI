@@ -18,6 +18,10 @@ QuantatomAI is a moat-grade, AI-native planning and reporting platform built on 
 - **Layer 2 – Offline & Integrations:** Offline delta logs, ICH, LRI, connectors
 - **Layer 1 – Platform & Multi-cloud:** K8s, Istio/AFM, Crossplane/Terraform, observability, security, SAIC
 
+Canonical architecture and data-journey source of truth:
+
+- `docs/architecture/quantatomai-single-source-of-truth.md`
+
 ## Repo layout
 
 - `docs/` – architecture, APIs, dev guides, product docs  

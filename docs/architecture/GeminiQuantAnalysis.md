@@ -1,3 +1,7 @@
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
 # GeminiQuantAnalysis: The QuantatomAI Planning & Reporting Platform
 
 This analysis elevates the "Data Grid" from a technical component to the heart of a comprehensive **Enterprise Planning & Reporting Platform**. As your architect, I am detailing how QuantatomAI handles the complex lifecycle of business applications, custom dimensionality, and multi-directional data journeys.
@@ -6,7 +10,7 @@ This analysis elevates the "Data Grid" from a technical component to the heart o
 In QuantatomAI, an "Application" (e.g., *Income Statement*, *Sales Ops*, *Capex Planner*) is a **curated view** of your enterprise data. You don't need to plan on all 10,000 corporate accounts if your Income Statement only requires 500.
 
 ### Metadata Virtualization vs. Enterprise Master Data
-*   **The Library (Enterprise Level):** This is Layer 4 — Metadata (Postgres), containing every member, hierarchy, and attribute defined across the corporation.
+*   **The Library (Enterprise Level):** This is Layer 4 â€” Metadata (Postgres), containing every member, hierarchy, and attribute defined across the corporation.
 *   **The Workspace (Application Level):** This is a **Metadata Virtualization** layer. When you create an "Application," you simply "attach" the specific dimensions and members you need. 
     *   **Sub-lattice Mapping:** The "Lattice Shape" is restricted to only the members relevant to the app. This ensures that the **AtomEngine (L5)** never wastes CPU cycles evaluating cells outside your business scope.
     *   **Custom Overlay:** You can add "Virtual Members" (like a custom KPI `HRP_Ratio`) that only exist within that specific application, without polluting the global master data.
@@ -19,10 +23,10 @@ In QuantatomAI, an "Application" (e.g., *Income Statement*, *Sales Ops*, *Capex 
 | **KPIs/Formulas** | Calculation logic (DSO, CAPEX, etc.) bound to metadata members. | **Layer 5 (Compute)** |
 
 ## 2. Top-Down & Bottoms-Up Synthesis
-Your point about the 10,000 accounts for "Actuals" vs. the curated 500 for "Planning" is excellent. This is where QuantatomAI’s **Lattice Layering** excels.
+Your point about the 10,000 accounts for "Actuals" vs. the curated 500 for "Planning" is excellent. This is where QuantatomAIâ€™s **Lattice Layering** excels.
 
 ### A. The "Actuals" Base Layer (Bottom-Up)
-*   **The Full Grain:** We ingest actual data at the lowest possible granularity (e.g., all 10k accounts, transaction level). This data lives in **Layer 4 — Warm Store (ClickHouse)**.
+*   **The Full Grain:** We ingest actual data at the lowest possible granularity (e.g., all 10k accounts, transaction level). This data lives in **Layer 4 â€” Warm Store (ClickHouse)**.
 *   **Zero-Loss Integrity:** Even if a planning app only *shows* 500 accounts, the **AtomEngine (L5)** can still reach into the "Base Layer" to aggregate the other 9,500 accounts into a "Total Other" or "Historical Base" line item.
 *   **Projectors (L3):** As new actuals arrive via **AODL**, projectors automatically roll up the leaf data to hierarchy nodes, ensuring the "Lattice" is always fresh.
 
@@ -37,7 +41,7 @@ Your point about the 10,000 accounts for "Actuals" vs. the curated 500 for "Plan
 3.  **Kernel Execution (L5):** 
     *   **Top-Down:** Spreading logic allocates the value to children.
     *   **Bottom-Up:** Aggregation logic rolls the children up to other parents.
-4.  **Holographic Persistence (L4):** The plan is stored as a **Delta Segment**—we never overwrite the "Actuals." This allows for instant "Variance Analysis" (Actuals vs. Plan) without moving any data.
+4.  **Holographic Persistence (L4):** The plan is stored as a **Delta Segment**â€”we never overwrite the "Actuals." This allows for instant "Variance Analysis" (Actuals vs. Plan) without moving any data.
 
 | Direction | Driver | Implementation |
 | :--- | :--- | :--- |
@@ -122,11 +126,11 @@ For the exact libraries (Introduction of `wgpu`, `Connect-Go`, `Rayon`, `Redpand
 
 You asked for a brutally honest assessment.
 
-### Current Rating: 💎 Diamond Class
+### Current Rating: ðŸ’Ž Diamond Class
 The architecture I have detailed (`Go Orchestration` + `Rust Compute` + `Postgres Metadata`) is **Diamond Class**.
 *   **Why Diamond?** It balances **Extreme Performance** (Rust SIMD) with **Enterprise Manageability** (Postgres SQL, Kubernetes Microservices). It is 100x faster than Anaplan/Pigment and will win every RFP.
 *   **Why NOT Ultra-Diamond?**
-    1.  **The "Network Tax"**: We still marshal data between the Go Layer (L6) and the Rust Layer (L5) over gRPC. Even with Arrow Flight, this costs ~200μs per call.
+    1.  **The "Network Tax"**: We still marshal data between the Go Layer (L6) and the Rust Layer (L5) over gRPC. Even with Arrow Flight, this costs ~200Î¼s per call.
     2.  **The "Relational Anchor"**: We still treat metadata as tables in Postgres. True "Wait-Free" requires metadata to be a pure in-memory graph, not a SQL query.
 
 ### The "Ultra-Diamond" Vision (The Singularity Architecture)
@@ -255,10 +259,10 @@ You asked for a *"Grand Checklist"* to track our progress layer by layer.
 I have created the **[QuantatomAI Implementation Dashboard](file:///C:/Users/srath/Downloads/QuantatomAI/docs/project/quantatomai_implementation_dashboard.md)**.
 
 **Current Status:**
-*   **Architecture Phase:** ✅ Complete (100%)
-*   **Foundation Phase:** 🏗️ In Progress (15%)
-*   **Compute Phase:** ⏳ Pending
-*   **Experience Phase:** ⏳ Pending
+*   **Architecture Phase:** âœ… Complete (100%)
+*   **Foundation Phase:** ðŸ—ï¸ In Progress (15%)
+*   **Compute Phase:** â³ Pending
+*   **Experience Phase:** â³ Pending
 
 ## 18. The Intelligence Upgrade: QuantatomAI Cortex (Layer 8)
 
@@ -379,7 +383,7 @@ In QuantatomAI, MDM is a **Living Graph**.
 Every single data point, transformation rule, and mapping is a **Node** in our Graph Database.
 *   **The Query:** "Show me where this 'Net Income' number comes from."
 *   **The Answer:** The system traverses the graph backwards:
-    `Net Income` ← `SUM(Revenue, Cost)` ← `Revenue (GL Account 4000)` ← `Source System: SAP S/4HANA (Table ACDOCA)`
+    `Net Income` â† `SUM(Revenue, Cost)` â† `Revenue (GL Account 4000)` â† `Source System: SAP S/4HANA (Table ACDOCA)`
 *   **The Visualization:** We can render a **"Google Maps" style view** of your entire enterprise data flow. You can zoom out to see the whole company or zoom in to a single transaction's journey.
 
 ### B. Resonance Bridges = Visible Transformations

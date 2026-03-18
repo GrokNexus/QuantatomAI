@@ -1,0 +1,103 @@
+name: "Docs Consistency"
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs-consistency.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs-consistency.yml'
+  workflow_dispatch:
+
+jobs:
+  ssot-consistency:
+    name: "SSOT Header and Required Docs Check"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate SSOT Derivation Headers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SSOT_PATH="docs/architecture/quantatomai-single-source-of-truth.md"
+          HEADER_1="> SSOT Derivation Notice"
+          HEADER_2="> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md)."
+          HEADER_3="> If any conflict exists, the SSOT prevails."
+
+          mapfile -t FILES < <(
+            {
+              find docs/architecture -type f -name "*.md" ! -name "quantatomai-single-source-of-truth.md"
+              find docs/api -type f -name "*.md"
+            } | sort
+          )
+
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No architecture/api markdown docs found to validate."
+            exit 1
+          fi
+
+          FAILED=0
+          for f in "${FILES[@]}"; do
+            L1="$(sed -n '1p' "$f")"
+            L2="$(sed -n '2p' "$f")"
+            L3="$(sed -n '3p' "$f")"
+            if [ "$L1" != "$HEADER_1" ] || [ "$L2" != "$HEADER_2" ] || [ "$L3" != "$HEADER_3" ]; then
+              echo "Header mismatch: $f"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "SSOT derivation header validation failed."
+            exit 1
+          fi
+
+          if [ ! -f "$SSOT_PATH" ]; then
+            echo "Missing canonical SSOT file: $SSOT_PATH"
+            exit 1
+          fi
+
+          echo "SSOT header validation passed."
+
+      - name: Validate Required Docs Are Populated
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REQUIRED=(
+            "docs/architecture/ingestion-pipeline.md"
+            "docs/architecture/atoms-lattice.md"
+            "docs/architecture/wave-qos.md"
+            "docs/architecture/ascii-diagram.md"
+            "docs/api/rest-endpoints.md"
+          )
+
+          FAILED=0
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "Missing required doc: $f"
+              FAILED=1
+              continue
+            fi
+
+            NON_EMPTY_LINES=$(grep -c '[^[:space:]]' "$f" || true)
+            if [ "$NON_EMPTY_LINES" -le 6 ]; then
+              echo "Doc appears unpopulated: $f"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Required docs validation failed."
+            exit 1
+          fi
+
+          echo "Required docs are present and populated."

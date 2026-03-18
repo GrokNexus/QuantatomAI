@@ -1,4 +1,8 @@
-﻿# QuantatomAI Data Tiering: Hot, Warm, Cold
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
+# QuantatomAI Data Tiering: Hot, Warm, Cold
 
 ## Purpose
 This document defines the operational storage lifecycle for QuantatomAI atoms or molecules across hot, warm, and cold tiers.

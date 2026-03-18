@@ -1,3 +1,7 @@
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
 # QuantatomAI Master Schema & Resonance Specification
 
 ================================================================================
@@ -6,8 +10,8 @@
 
 Legend:
 - [Table/Node]: Entity (e.g., Table in Postgres, Node in Neo4j)
-- ────> : One-to-Many / Foreign Key / Relationship
-- <──── : Sync / Event Flow (e.g., Kafka Trigger)
+- â”€â”€â”€â”€> : One-to-Many / Foreign Key / Relationship
+- <â”€â”€â”€â”€ : Sync / Event Flow (e.g., Kafka Trigger)
 - ~~> : Asynchronous Wave / Propagation (Resonance-specific)
 - (Index): Performance Hint (e.g., GIN for JSONB)
 - {Dynamic}: Expandable Field (JSONB/Map for flexibility)
@@ -29,7 +33,7 @@ Legend:
   | viz_apps (1)      |
   | - id (UUID PK)    |
   | - name (VARCHAR)  |
-  | - planning_type (ENUM: 'corporate', 'supply_chain', 'headcount') | ← SPT Shard Key
+  | - planning_type (ENUM: 'corporate', 'supply_chain', 'headcount') | â† SPT Shard Key
   | - created_at (TIMESTAMP) |
   | (Index: planning_type) |
   +-------------------+
@@ -41,8 +45,8 @@ Legend:
   | - viz_app_id (FK) |
   | - name (VARCHAR)  |
   | - type (ENUM)     |
-  | - properties (JSONB) | ← {formula: 'sum(children)', alignment: 8}
-  | - huc_gates (JSONB)  | ← Governance/Access Control
+  | - properties (JSONB) | â† {formula: 'sum(children)', alignment: 8}
+  | - huc_gates (JSONB)  | â† Governance/Access Control
   | (GIN Index on properties) |
   +-------------------+
              |
@@ -51,10 +55,10 @@ Legend:
   | dimension_members (3) |
   | - id (UUID PK)       |
   | - dimension_id (FK)  |
-  | - parent_id (FK self)| ← Hierarchy Support
+  | - parent_id (FK self)| â† Hierarchy Support
   | - code (VARCHAR)     |
   | - name (VARCHAR)     |
-  | - attributes (JSONB) | ← Custom weights/properties
+  | - attributes (JSONB) | â† Custom weights/properties
   | (Index: dimension_id, parent_id) |
   +-------------------+
              |
@@ -64,31 +68,31 @@ Legend:
   | - id (UUID PK)    |
   | - value (NUMERIC/NaN-Boxed) |
   | - scenario_id (UUID)|
-  | - coordinates (JSONB) | ← {dim_id: member_id}
-  | - bridge_id (UUID FK) | ← RAB for roll-up paths
-  | - target_id (UUID FK) | ← BRF for top-down targeting
+  | - coordinates (JSONB) | â† {dim_id: member_id}
+  | - bridge_id (UUID FK) | â† RAB for roll-up paths
+  | - target_id (UUID FK) | â† BRF for top-down targeting
   | -- MOAT ENGINEERING -- |
-  | - causal_clock (BIGINT[]) | ← Lamport Vector for distributed consistency
-  | - bridge_vector (BYTEA)   | ← Roaring Bitmap for SIMD propagation
-  | - security_mask (BIGINT)  | ← CPU-level ACL bitmask
+  | - causal_clock (BIGINT[]) | â† Lamport Vector for distributed consistency
+  | - bridge_vector (BYTEA)   | â† Roaring Bitmap for SIMD propagation
+  | - security_mask (BIGINT)  | â† CPU-level ACL bitmask
   | (GIN Index on coordinates) |
   +-------------------+
              |
              v
   +-------------------+
-  | aggregation_bridges (5) | ← RAB (Actuals to Plan Bridge)
+  | aggregation_bridges (5) | â† RAB (Actuals to Plan Bridge)
   | - id (UUID PK)         |
-  | - source_atom_id (FK)  | ← Granular (Actuals)
-  | - target_atom_id (FK)  | ← High-level (Plan)
-  | - weight (FLOAT)       | ← Proportional allocation
-  | - variance_echo (JSONB)| ← Delta analysis
+  | - source_atom_id (FK)  | â† Granular (Actuals)
+  | - target_atom_id (FK)  | â† High-level (Plan)
+  | - weight (FLOAT)       | â† Proportional allocation
+  | - variance_echo (JSONB)| â† Delta analysis
   +-------------------+
              |
              v
   +-------------------+
-  | commentary_echo (6)     | ← ECL (Adjustment/Notes)
+  | commentary_echo (6)     | â† ECL (Adjustment/Notes)
   | - id (UUID PK)         |
-  | - atom_id (FK)         | ← Link to any lattice coord
+  | - atom_id (FK)         | â† Link to any lattice coord
   | - adjust_value (NUMERIC)| 
   | - note (TEXT)          |
   | - created_by (UUID)    |
@@ -100,18 +104,18 @@ Legend:
 *3 Tables + Views: Columnar Analytics for Massive Datasets (Synchronized via Kafka).*
 
   +-------------------+
-  | atom_analytics (1)| ← Flattened Lattice Projection
+  | atom_analytics (1)| â† Flattened Lattice Projection
   | - id (UUID)       |
   | - value (Float64) |
   | - scenario_id (UUID)|
-  | - dim_map (Map)   | ← Dynamic Dimensions
-  | - bridge_id (UUID)| ← RAB
-  | - target_id (UUID)| ← BRF
+  | - dim_map (Map)   | â† Dynamic Dimensions
+  | - bridge_id (UUID)| â† RAB
+  | - target_id (UUID)| â† BRF
   | (MinMax Index on scenario_id) |
   +-------------------+
 
   +-------------------+
-  | agg_cells (2)     | ← Pre-computed Aggregates (Layer 5 Fuel)
+  | agg_cells (2)     | â† Pre-computed Aggregates (Layer 5 Fuel)
   | - node_id (UUID)  |
   | - sum_val (AggregateFunction) |
   | - avg_val (AggregateFunction) |
@@ -123,19 +127,19 @@ Legend:
 ### [Layer 5: Compute & AI - Neo4j]
 *Graph Database for Entanglement & Dependency Resolution.*
 
-  [Node: :Member] ──── (:PARENT_OF) ────> [Node: :Member]
-  [Node: :Atom] ────── (:BELONGS_TO) ─────> [Node: :Member]
-  [Node: :Atom] ────── (:BRIDGE) ─────────> [Node: :Atom] ← RAB Path
-  [Node: :Atom] ────── (:TARGET_FLOW) ────> [Node: :Atom] ← BRF Path
+  [Node: :Member] â”€â”€â”€â”€ (:PARENT_OF) â”€â”€â”€â”€> [Node: :Member]
+  [Node: :Atom] â”€â”€â”€â”€â”€â”€ (:BELONGS_TO) â”€â”€â”€â”€â”€> [Node: :Member]
+  [Node: :Atom] â”€â”€â”€â”€â”€â”€ (:BRIDGE) â”€â”€â”€â”€â”€â”€â”€â”€â”€> [Node: :Atom] â† RAB Path
+  [Node: :Atom] â”€â”€â”€â”€â”€â”€ (:TARGET_FLOW) â”€â”€â”€â”€> [Node: :Atom] â† BRF Path
 
 ---
 
 ## Data Flows Across the 7-Layer Mesh
 
 1.  **Write Path (Input Ceremony)**:
-    - User (L7) ────> Grid API (L6) ────> Write to Postgres (L2)
-    - Postgres Trigger ────> Kafka (L3) ────> Neo4j Entanglement (L5)
-    - Neo4j ────> Trigger Recalculation (L5 Rust Engine)
+    - User (L7) â”€â”€â”€â”€> Grid API (L6) â”€â”€â”€â”€> Write to Postgres (L2)
+    - Postgres Trigger â”€â”€â”€â”€> Kafka (L3) â”€â”€â”€â”€> Neo4j Entanglement (L5)
+    - Neo4j â”€â”€â”€â”€> Trigger Recalculation (L5 Rust Engine)
 
 ## 4. Realization Stack: The "Absolute Best" Toolkit
 

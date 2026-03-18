@@ -1,3 +1,7 @@
+﻿> SSOT Derivation Notice
+> This document derives from the canonical architecture SSOT: [docs/architecture/quantatomai-single-source-of-truth.md](docs/architecture/quantatomai-single-source-of-truth.md).
+> If any conflict exists, the SSOT prevails.
+
 # QuantatomAI Grid Engine Specification
 
 ## Overview
@@ -37,11 +41,11 @@ The QuantatomAI Data Grid Engine is the primary interaction surface for planning
 
 ### Data retrieval and navigation
 
-- Virtualized rendering (10k–100k visible cells).
+- Virtualized rendering (10kâ€“100k visible cells).
 - Lazy loading with window-based prefetching.
 - Drill-down from aggregates to contributing members.
 - Drill-through to transactional detail via connectors.
-- Linked grids where one grid’s selection filters another.
+- Linked grids where one gridâ€™s selection filters another.
 
 ### Planning operations
 
