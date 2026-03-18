@@ -46,11 +46,15 @@ jobs:
 
           FAILED=0
           for f in "${FILES[@]}"; do
-            L1="$(sed -n '1p' "$f")"
-            L2="$(sed -n '2p' "$f")"
-            L3="$(sed -n '3p' "$f")"
+            # Normalize potential BOM and CRLF differences before comparing.
+            L1="$(sed -n '1p' "$f" | sed 's/^\xEF\xBB\xBF//' | tr -d '\r')"
+            L2="$(sed -n '2p' "$f" | tr -d '\r')"
+            L3="$(sed -n '3p' "$f" | tr -d '\r')"
             if [ "$L1" != "$HEADER_1" ] || [ "$L2" != "$HEADER_2" ] || [ "$L3" != "$HEADER_3" ]; then
               echo "Header mismatch: $f"
+              echo "  got line1: $L1"
+              echo "  got line2: $L2"
+              echo "  got line3: $L3"
               FAILED=1
             fi
           done
